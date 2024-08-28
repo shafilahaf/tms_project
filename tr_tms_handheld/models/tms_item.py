@@ -41,6 +41,7 @@ class TmsItem(models.Model):
     lot_neg_adjmt_inb_tracking = fields.Boolean('Lot Neg. Adjmt. Inb. Tracking')
     lot_neg_adjmt_outb_tracking=fields.Boolean('Lot Neg. Adjmt. Outb. Tracking')
     lot_transfer_tracking = fields.Boolean('Lot Transfer Tracking')
+    barcode = fields.Char(string="Barcode")
     
     has_been_sent_to_nav = fields.Boolean(string='Has been sent to NAV', default=False)
     etag = fields.Char(string='ETag')

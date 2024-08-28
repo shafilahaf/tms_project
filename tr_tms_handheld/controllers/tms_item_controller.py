@@ -23,6 +23,7 @@ class TmsItem(http.Controller):
         product_group_code = data.get('Product_Group_Code')
         item_tracking_code = data.get('Item_Tracking_Code')
         division_code = data.get('Division Code')
+        barcode = data.get('Barcode')
         
         man_expir_date_entry_reqd = data.get('Man. Expir. Date Entry Reqd.')
         strict_expiration_posting = data.get('Strict Expiration Posting')
@@ -71,6 +72,7 @@ class TmsItem(http.Controller):
                 'product_group_code': product_group_code,
                 'item_tracking_code': item_tracking_code,
                 'division_code': division_code,
+                'barcode': barcode,
                 
                 'man_expir_date_entry_reqd': 0 if man_expir_date_entry_reqd == 'false' else 1,
                 'strict_expiration_posting': 0 if strict_expiration_posting == 'false' else 1,
@@ -115,7 +117,7 @@ class TmsItem(http.Controller):
                 'product_group_code': product_group_code,
                 'item_tracking_code': item_tracking_code,
                 'division_code': division_code,
-                
+                'barcode': barcode,
                 # 'man_expir_date_entry_reqd': man_expir_date_entry_reqd,
                 'man_expir_date_entry_reqd': 0 if man_expir_date_entry_reqd == 'false' else 1,
                 'strict_expiration_posting': 0 if strict_expiration_posting == 'false' else 1,
