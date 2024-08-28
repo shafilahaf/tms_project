@@ -22,6 +22,7 @@
                             <field name="product_group_code"/>
                             <field name="item_tracking_code"/>
                             <field name="division_code"/>
+                            <field name="barcode" />
                         </group>
                     </group>
                     <!-- Additional fields for tracking and expiration -->
