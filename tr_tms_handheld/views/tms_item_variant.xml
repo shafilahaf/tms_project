@@ -1,0 +1,21 @@
+<odoo>
+  <data>
+    <!-- View for TMS Item Variant -->
+    <record id="view_tms_item_variant_form" model="ir.ui.view">
+      <field name="name">tms.item.variant.form</field>
+      <field name="model">tms.item.variant</field>
+      <field name="arch" type="xml">
+        <form string="TMS Item Variant">
+          <sheet>
+            <group>
+              <field name="code"/>
+              <field name="item_no"/>
+              <field name="description"/>
+              <field name="description_2"/>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
+  </data>
+</odoo>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_company_form_inherit" model="ir.ui.view">
+        <field name="name">res.company.form.inherit</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='phone']" position="before">
+                <field name="ip_or_url_api" />
+                <field name="port_api" />
+                <field name="username_api" />
+                <field name="password_api" password="True"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

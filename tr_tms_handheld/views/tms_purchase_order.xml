@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tms_purchase_order_header_view_treee" model="ir.ui.view">
+        <field name="name">tms.purchase.order.header.view.tree</field>
+        <field name="model">tms.purchase.order.header</field>
+        <field name="arch" type="xml">
+            <tree string="">
+                <field name="no" />
+                <field name="buy_from_vendor_no" />
+                <field name="buy_from_vendor_name" />
+                <field name="location_code" />
+                <field name="order_date" />
+                <field name="status" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="tms_purchase_order_header_view_form" model="ir.ui.view">
+    <field name="name">tms.purchase.order.header.view.form</field>
+    <field name="model">tms.purchase.order.header</field>
+    <field name="arch" type="xml">
+        <form string="Purchase Order Header">
+            <!-- Header section (if needed) -->
+            <header>
+                <button name="create_po_receipt" string="Create Receipt" type="object" class="oe_highlight" />
+            </header>
+            <sheet>
+                <group>
+                    <group>
+                        <!-- <field name="document_type"/> -->
+                        <field name="document_type"></field>
+                        <field name="no"/>
+                        <field name="order_date"/>
+                        <field name="posting_date"/>
+                        <field name="status"/>
+                    </group>
+                    <group>
+                        <field name="location_code"/>
+                        <field name="vendor_shipment_no"/>
+                        <field name="store_no"/>
+                        <field name="no_series"/>
+                        <field name="posting_no_series"/>
+                        <field name="receiving_no_series"/>
+                        <field name="return_shipment_no"/>
+                        <field name="return_shipment_no_series"/>
+                    </group>
+                </group>
+                <group string="Vendor Information">
+                    <group>
+                        <field name="buy_from_vendor_no"/>
+                        <field name="buy_from_vendor_name"/>
+                        <field name="buy_from_vendor_name_2"/>
+                    </group>
+                    <group>
+                        <field name="buy_from_address"/>
+                        <field name="buy_from_address_2"/>
+                        <field name="buy_from_city"/>
+                        <field name="buy_from_contact"/>
+                    </group>
+                    <group>
+                        <field name="buy_from_post_code"/>
+                        <field name="buy_from_country"/>
+                        <field name="buy_from_country_region_code"/>
+                    </group>
+                </group>
+                <notebook>
+                    <page string="Purchase Order Lines">
+                        <field name="purchase_order_line_ids">
+                            <tree editable="bottom">
+                                <field name="line_no"/>
+                                <field name="no" />
+                                <field name="description"/>
+                                <field name="unit_of_measure"/>
+                                <field name="quantity"/>
+                                <field name="outstanding_quantity"/>
+                                <field name="qty_to_receive"/>
+                                <field name="qty_received"/>
+                                <field name="unit_of_measure_code"/>
+                                <field name="return_qty_to_ship"/>
+                                <field name="return_qty_shipped"/>
+                                <field name="return_reason_code"/>
+                            </tree>
+                            <form>
+                                <group>
+                                    <field name="line_no"/>
+                                    <field name="no" />
+                                    <field name="description"/>
+                                    <field name="unit_of_measure"/>
+                                    <field name="quantity"/>
+                                    <field name="outstanding_quantity"/>
+                                    <field name="qty_to_receive"/>
+                                    <field name="qty_received"/>
+                                    <field name="unit_of_measure_code"/>
+                                    <field name="return_qty_to_ship"/>
+                                    <field name="return_qty_shipped"/>
+                                    <field name="return_reason_code"/>
+                                </group>
+                            </form>
+                        </field>
+                    </page>
+                </notebook>
+            </sheet>
+        </form>
+    </field>
+</record>
+
+
+</odoo>

@@ -1,0 +1,20 @@
+<odoo>
+  <data>
+    <record id="view_tms_item_identifiers_form" model="ir.ui.view">
+      <field name="name">tms.item.identifiers.form</field>
+      <field name="model">tms.item.identifiers</field>
+      <field name="arch" type="xml">
+        <form string="TMS Item Identifiers">
+          <sheet>
+            <group>
+              <field name="code"/>
+              <field name="item_no"/>
+              <field name="variant_code"/>
+              <field name="unit_of_measure_code"/>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
+  </data>
+</odoo>

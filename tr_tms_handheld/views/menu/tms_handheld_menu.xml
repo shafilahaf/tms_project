@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Action -->
+    <record id="action_tms_unit_of_measures" model="ir.actions.act_window">
+        <field name="name">Unit of Measures</field>
+        <field name="res_model">tms.unit.of.measures</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_tms_items" model="ir.actions.act_window">
+        <field name="name">Items</field>
+        <field name="res_model">tms.item</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_tms_item_uom" model="ir.actions.act_window">
+        <field name="name">Items UoM</field>
+        <field name="res_model">tms.item.uom</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_tms_item_identifiers" model="ir.actions.act_window">
+        <field name="name">Items Identifiers</field>
+        <field name="res_model">tms.item.identifiers</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_tms_item_variant" model="ir.actions.act_window">
+        <field name="name">Items Variant</field>
+        <field name="res_model">tms.item.variant</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_tms_receipt" model="ir.actions.act_window">
+        <field name="name">Receipt</field>
+        <field name="res_model">tms.receipt.header</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_tms_purchase_orderss" model="ir.actions.act_window">
+        <field name="name">Purchase Order</field>
+        <field name="res_model">tms.purchase.order.header</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_tms_sales" model="ir.actions.act_window">
+        <field name="name">Sales</field>
+        <field name="res_model">tms.sales.order.header</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_tms_transfer" model="ir.actions.act_window">
+        <field name="name">Transfer</field>
+        <field name="res_model">tms.transfer.header</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_tms_reservation_entry" model="ir.actions.act_window">
+        <field name="name">Reservation Entry</field>
+        <field name="res_model">tms.reservation.entry</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': True, 'edit': True, 'delete': True}</field>
+    </record>
+
+    <record id="action_tms_item_journal_line" model="ir.actions.act_window">
+        <field name="name">Item Journal Line</field>
+        <field name="res_model">tms.item.journal.line</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Menuitem -->
+    <menuitem id="menu_tms_handheld" name="TMS Handheld" sequence="10" web_icon="tr_tms_handheld,static/description/odoo_icon.png"/>
+
+    <menuitem id="menu_tms_handheld_checkstock" name="Check Stock" parent="menu_tms_handheld" sequence="10"/>
+
+    <menuitem id="menu_tms_handheld_master" name="Master Data" parent="menu_tms_handheld" sequence="10"/>
+    <menuitem id="menu_tms_unit_of_measures" name="Unit of Measures" parent="menu_tms_handheld_master" action="action_tms_unit_of_measures" sequence="10"/>
+    <menuitem id="menu_tms_items" name="Items" parent="menu_tms_handheld_master" action="action_tms_items" sequence="20"/>
+    <menuitem id="menu_tms_item_uom" name="Items UoM" parent="menu_tms_handheld_master" action="action_tms_item_uom" sequence="30"/>
+    <menuitem id="menu_tms_item_identifiers" name="Items Identifiers" parent="menu_tms_handheld_master" action="action_tms_item_identifiers" sequence="40"/>
+    <menuitem id="menu_tms_item_variant" name="Items Variant" parent="menu_tms_handheld_master" action="action_tms_item_variant" sequence="50"/>
+    <menuitem id="menu_tms_reservation_entry" name="Reservation Entry" parent="menu_tms_handheld_master" action="action_tms_reservation_entry" sequence="60"/>
+
+    <menuitem id="menu_tms_handheld_receive" name="Receive" parent="menu_tms_handheld" sequence="20"/>
+    <menuitem id="menu_tms_purchase_order" name="Purchase Order" parent="menu_tms_handheld_receive" action="action_tms_purchase_orderss" sequence="10"/>
+    <menuitem id="menu_tms_transfer" name="Transfer Order" parent="menu_tms_handheld_receive" action="action_tms_transfer" sequence="20"/>
+
+    <menuitem id="menu_tms_handheld_shipment" name="Shipment" parent="menu_tms_handheld" sequence="30"/>
+    <menuitem id="menu_tms_sales" name="Sales Order" parent="menu_tms_handheld_shipment" action="action_tms_sales" sequence="10"/>
+    <menuitem id="menu_tms_transfer_shipment" name="Transfer Order" parent="menu_tms_handheld_shipment" action="action_tms_transfer" sequence="20"/>
+
+    <menuitem id="menu_tms_handheld_return" name="Return" parent="menu_tms_handheld" sequence="40"/>
+    <menuitem id="menu_tms_purchase_order_return" name="Purchase Order" parent="menu_tms_handheld_return" action="action_tms_purchase_orderss" sequence="10"/>
+    <menuitem id="menu_tms_sales_return" name="Sales Order" parent="menu_tms_handheld_return" action="action_tms_sales" sequence="20"/>
+
+    <menuitem id="menu_tms_handheld_stock_take" name="Stock Take" parent="menu_tms_handheld" sequence="50"/>
+    <menuitem id="menu_tms_handheld_register_barcode" name="Register Barcode" parent="menu_tms_handheld" sequence="60"/>
+
+</odoo>

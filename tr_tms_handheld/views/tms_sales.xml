@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tms_sales_header_view_tree" model="ir.ui.view">
+        <field name="name">tms.sales.order.header.view.tree</field>
+        <field name="model">tms.sales.order.header</field>
+        <field name="arch" type="xml">
+            <tree string="">
+                <field name="no" />
+                <field name="document_type" />
+                <field name="sell_to_customer_no" />
+                <field name="sell_to_customer_name" />
+                <field name="order_date" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="tms_sales_header_view_form" model="ir.ui.view">
+        <field name="name">tms.sales.order.header.view.form</field>
+        <field name="model">tms.sales.order.header</field>
+        <field name="arch" type="xml">
+            <form string="">
+                <sheet>
+                    <group string="Document Information">
+                        <field name="no" />
+                        <field name="document_type" />
+                        <field name="order_date" />
+                        <field name="posting_date" />
+                        <field name="shipment_date" />
+                        <field name="status" />
+                    </group>
+                    <group string="Customer Information">
+                        <group>
+                            <field name="sell_to_customer_no" />
+                            <field name="sell_to_customer_name" />
+                            <field name="sell_to_customer_name_2" />
+                            <field name="sell_to_contact" />
+                        </group>
+                        <group>
+                            <field name="sell_to_address" />
+                            <field name="sell_to_address_2" />
+                            <field name="sell_to_city" />
+                            <field name="sell_to_post_code" />
+                            <field name="sell_to_county" />
+                            <field name="sell_to_country_region_code" />
+                        </group>
+                    </group>
+                    <group string="Shipping Information">
+                        <group>
+                            <field name="ship_to_post_code" />
+                            <field name="ship_to_county" />
+                            <field name="ship_to_country_region_code" />
+                            <field name="location_code" />
+                            <field name="shipping_agent_code" />
+                        </group>
+                        <group>
+                            <field name="package_tracking_no" />
+                            <field name="posting_no_series" />
+                            <field name="shipping_no_series" />
+                            <field name="return_receipt_no_series" />
+                        </group>
+                    </group>
+                    <group string="Store Information">
+                        <field name="store_no" />
+                    </group>
+                    <notebook>
+                        <page name="sales_lines" string="Sales Lines">
+                            <field name="sales_line_ids">
+                                <tree editable="bottom">
+                                    <field name="document_type" force_save="1" invisible="1" />
+                                    <field name="document_no" force_save="1" invisible="1" />
+                                    <field name="line_no" />
+                                    <field name="no" />
+                                    <field name="location_code" />
+                                    <field name="quantity" />
+                                    <field name="unit_of_measure" />
+                                    <field name="qty_to_ship_base" />
+                                    <field name="qty_shipped_base" />
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

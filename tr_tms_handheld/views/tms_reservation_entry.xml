@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tms_reservation_entry_view_tree" model="ir.ui.view">
+        <field name="name">tms.reservation.entry.view.tree</field>
+        <field name="model">tms.reservation.entry</field>
+        <field name="arch" type="xml">
+            <tree string="">
+                <field name="item_no" />
+                <field name="location_code" />
+                <field name="source_type" />
+                <field name="source_id" />
+                <field name="source_ref_no" />
+                <field name="quantity" />
+                <field name="expiration_date" />
+                <field name="serial_no" />
+                <field name="lot_no" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="rvation_entry_view_form" model="ir.ui.view">
+        <field name="name">tms.reservation.entry.view.form</field>
+        <field name="model">tms.reservation.entry</field>
+        <field name="arch" type="xml">
+            <form string="">
+                <sheet>
+                    <group>
+                        <field name="item_no" />
+                        <field name="location_code" />
+                        <field name="source_type" />
+                        <field name="source_id" />
+                        <field name="source_ref_no" />
+                        <field name="quantity" />
+                        <field name="expiration_date" />
+                        <field name="serial_no" />
+                        <field name="lot_no" />
+                        <field name="purchase_scan_id" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>
