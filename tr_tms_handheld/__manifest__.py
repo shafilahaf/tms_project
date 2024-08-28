@@ -30,8 +30,6 @@
     ],
     "assets": {
         "web.assets_backend": [
-            # "tr_tms_handheld/static/src/js/barcode_focus.js",
-            # "tr_tms_handheld/static/src/js/auto_update.js",
         ],
     },
 }
