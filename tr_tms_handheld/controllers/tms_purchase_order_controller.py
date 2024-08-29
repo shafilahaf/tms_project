@@ -114,8 +114,18 @@ class TmsPurchaseLine(http.Controller):
             purchase_order_lines = data.get('Purchase_Order_Lines', [])
 
             tms_purchase_line = request.env['tms.purchase.order.line'].sudo()
+            tms_item_model = request.env['tms.item'].sudo()
+            tms_uom_model = request.env['tms.unit.of.measures'].sudo()
 
             for line_data in purchase_order_lines:
+                item_no = line_data.get('No.')
+                item_record = tms_item_model.search([('no', '=', item_no)], limit=1)
+                
+                uom = line_data.get('Unit Of Measure')
+                uom_code = line_data.get('Unit of Measure Code')
+                uom_record = tms_uom_model.search([('code', '=', uom)], limit=1)
+                uom_record_code = tms_uom_model.search([('code', '=', uom_code)], limit=1)
+                
                 line_values = {
                     'header_id': header_id,
                     'line_no': line_data.get('Line No.'),
@@ -123,18 +133,18 @@ class TmsPurchaseLine(http.Controller):
                     'buy_from_vendor_no': line_data.get('Buy From Vendor No.'),
                     'document_no': line_data.get('Document No.'),
                     'type': line_data.get('Type'),
-                    'no': line_data.get('No.'),
+                    'no': str(item_record.id),
                     'location_code': line_data.get('Location Code'),
                     'description': line_data.get('Description'),
                     'description_2': line_data.get('Description 2'),
-                    'unit_of_measure': line_data.get('Unit Of Measure'),
+                    'unit_of_measure': str(uom_record.id),
                     'quantity': line_data.get('Quantity'),
                     'outstanding_quantity': line_data.get('Outstanding Quantity'),
                     'qty_to_receive': line_data.get('Qty To Receive'),
                     'qty_received': line_data.get('Qty Received'),
                     'variant_code': line_data.get('Variant Code'),
                     'qty_per_unit_of_measure': line_data.get('Qty. per Unit of Measure'),
-                    'unit_of_measure_code': line_data.get('Unit of Measure Code'),
+                    'unit_of_measure_code': str(uom_record_code.id),
                     'quantity_base': line_data.get('Quantity (Base)'),
                     'outstanding_qty_base': line_data.get('Outstanding Qty. (Base)'),
                     'qty_to_invoice_base': line_data.get('Qty. to Invoice (Base)'),
