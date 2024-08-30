@@ -31,24 +31,6 @@ class TMSPurchaseReceiptScanItem(models.Model):
     def _compute_contains_lot(self):
         for record in self:
             record.contains_lot = 'LOT' in record.item_tracking_code if record.item_tracking_code else False
-            
-    
-    # @api.depends('purchase_receipt_id')
-    # def _compute_available_item_ids(self):
-    #     """
-    #     Domain Item. Get Item from Purchase Order
-    #     """
-    #     for line in self:
-    #         if line.purchase_receipt_id:
-    #             purchase_order = self.env['tms.purchase.order.header'].search([
-    #                 ('no', '=', line.purchase_receipt_id.source_doc_no)
-    #             ], limit=1)
-    #             if purchase_order:
-    #                 line.available_item_ids = purchase_order.purchase_order_line_ids.mapped('no.id')
-    #             else:
-    #                 line.available_item_ids = False
-    #         else:
-    #             line.available_item_ids = False
     
     @api.depends('purchase_receipt_id')
     def _compute_available_item_ids(self):
