@@ -43,8 +43,8 @@ class TmsPurchaseOrderHeader(models.Model):
     def create_po_receipt(self):
         receipt_headerr = self.env['tms.purchase.receipt.header'].with_context(create=True, delete=True).create({ #.with_context(create=True, delete=True)
             'source_doc_no': self.no,
-            'posting_date': self.posting_date,
-            'vendor_shipment_no': self.vendor_shipment_no,
+            # 'posting_date': self.posting_date,
+            # 'vendor_shipment_no': self.vendor_shipment_no,
         })
         return {
             'name': 'Receipt',
@@ -73,18 +73,21 @@ class TmsPurchaseOrderLine(models.Model):
         ('Fixed Asset', 'Fixed Asset'),
         ('Charge (Item)', 'Charge (Item)')
     ], string='Type') 
-    no = fields.Char('No.', size=20)
+    # no = fields.Char('No.', size=20)
+    no = fields.Many2one('tms.item', string='No')
     location_code = fields.Char('Location Code', size=10)
     description = fields.Text('Description', size=50)
     description_2 = fields.Text('Description 2', size=50)
-    unit_of_measure = fields.Text('Unit Of Measure', size=10)
+    # unit_of_measure = fields.Text('Unit Of Measure', size=10)
+    unit_of_measure = fields.Many2one('tms.unit.of.measures', string='Unit Of Measure')
     quantity = fields.Float('Quantity')
     outstanding_quantity = fields.Float('Outstanding Quantity')
     qty_to_receive = fields.Float('Qty To Receive')
     qty_received = fields.Float('Qty Received')
     variant_code = fields.Char('Variant Code', size=10)
     qty_per_unit_of_measure = fields.Float('Qty. per Unit of Measure')
-    unit_of_measure_code = fields.Char('Unit of Measure Code', size=10)
+    # unit_of_measure_code = fields.Char('Unit of Measure Code', size=10)
+    unit_of_measure_code = fields.Many2one('tms.unit.of.measures', string='Unit of Measure Code')
     quantity_base = fields.Float('Quantity (Base)')
     outstanding_qty_base = fields.Float('Outstanding Qty. (Base)')
     qty_to_invoice_base = fields.Float('Qty. to Invoice (Base)')

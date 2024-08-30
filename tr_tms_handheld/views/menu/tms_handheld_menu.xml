@@ -13,7 +13,7 @@
         <field name="name">Items</field>
         <field name="res_model">tms.item</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': True}</field>
     </record>
 
     <record id="action_tms_item_uom" model="ir.actions.act_window">
@@ -47,7 +47,7 @@
         <field name="name">Purchase Order</field>
         <field name="res_model">tms.purchase.order.header</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': True}</field>
     </record>
 
     <record id="action_tms_sales" model="ir.actions.act_window">
