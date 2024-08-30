@@ -72,4 +72,15 @@
             </tree>
         </field>
     </record>
+
+    <record id="tms_item_view_search" model="ir.ui.view">
+        <field name="name">tms_item.view.search</field>
+        <field name="model">tms.item</field>
+        <field name="arch" type="xml">
+            <search string="">
+                <field name="no" />
+                <field name="description" />
+            </search>
+        </field>
+    </record>
 </odoo>

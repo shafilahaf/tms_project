@@ -7,7 +7,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
     _rec_name = 'purchase_receipt_id'
     
     purchase_receipt_id = fields.Many2one('tms.purchase.receipt.header', string='Purchase Receipt')
-    item_no = fields.Many2one('tms.item', string="Item No.", domain="[('no', 'in', available_item_ids)]")
+    item_no = fields.Many2one('tms.item', string="Item No.", domain="[('id', 'in', available_item_ids)]")
     item_description = fields.Char('Item Description', readonly=True, store=True)
     quantity =  fields.Float('Quantity')
     # sn_or_lotno = fields.Char('SN/Lot No.')
@@ -33,22 +33,41 @@ class TMSPurchaseReceiptScanItem(models.Model):
             record.contains_lot = 'LOT' in record.item_tracking_code if record.item_tracking_code else False
             
     
+    # @api.depends('purchase_receipt_id')
+    # def _compute_available_item_ids(self):
+    #     """
+    #     Domain Item. Get Item from Purchase Order
+    #     """
+    #     for line in self:
+    #         if line.purchase_receipt_id:
+    #             purchase_order = self.env['tms.purchase.order.header'].search([
+    #                 ('no', '=', line.purchase_receipt_id.source_doc_no)
+    #             ], limit=1)
+    #             if purchase_order:
+    #                 line.available_item_ids = purchase_order.purchase_order_line_ids.mapped('no.id')
+    #             else:
+    #                 line.available_item_ids = False
+    #         else:
+    #             line.available_item_ids = False
+    
     @api.depends('purchase_receipt_id')
     def _compute_available_item_ids(self):
         """
         Domain Item. Get Item from Purchase Order
         """
-        for line in self:
-            if line.purchase_receipt_id:
+        for record in self:
+            if record.purchase_receipt_id:
                 purchase_order = self.env['tms.purchase.order.header'].search([
-                    ('no', '=', line.purchase_receipt_id.source_doc_no)
+                    ('no', '=', record.purchase_receipt_id.source_doc_no)
                 ], limit=1)
                 if purchase_order:
-                    line.available_item_ids = purchase_order.purchase_order_line_ids.mapped('no')
+                    # Get IDs of available items
+                    item_ids = purchase_order.purchase_order_line_ids.mapped('no.id')
+                    record.available_item_ids = [(6, 0, item_ids)]
                 else:
-                    line.available_item_ids = False
+                    record.available_item_ids = [(5, 0, 0)]
             else:
-                line.available_item_ids = False
+                record.available_item_ids = [(5, 0, 0)]
                 
     @api.onchange('item_no')
     def _onchange_item_no(self):
@@ -63,7 +82,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
             if purchase_order:
                 # Filter the purchase order lines
                 purchase_order_line = purchase_order.purchase_order_line_ids.filtered(
-                    lambda line: line.no == self.item_no.no
+                    lambda line: line.no.id == self.item_no.id
                 )
                 
                 if purchase_order_line:
@@ -105,7 +124,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
             raise UserError('No matching Purchase Order found.')
 
         purchase_order_line = purchase_order.purchase_order_line_ids.filtered(
-            lambda line: line.no == self.item_no.no
+            lambda line: line.no.id == self.item_no.id
         )
 
         if not purchase_order_line:

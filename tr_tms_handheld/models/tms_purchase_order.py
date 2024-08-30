@@ -43,8 +43,8 @@ class TmsPurchaseOrderHeader(models.Model):
     def create_po_receipt(self):
         receipt_headerr = self.env['tms.purchase.receipt.header'].with_context(create=True, delete=True).create({ #.with_context(create=True, delete=True)
             'source_doc_no': self.no,
-            'posting_date': self.posting_date,
-            'vendor_shipment_no': self.vendor_shipment_no,
+            # 'posting_date': self.posting_date,
+            # 'vendor_shipment_no': self.vendor_shipment_no,
         })
         return {
             'name': 'Receipt',

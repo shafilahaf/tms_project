@@ -14,8 +14,8 @@ class TMSPurchaseReceiptHeader(models.Model):
     
     document_no = fields.Char('Document No.', readonly=True)
     source_doc_no = fields.Char('Source Doc. No.', readonly=True)
-    posting_date = fields.Date('Posting Date', readonly=True)
-    vendor_shipment_no = fields.Char('Vendor Shipment No', readonly=True)
+    posting_date = fields.Date('Posting Date')
+    vendor_shipment_no = fields.Char('Vendor Shipment No')
     company = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company, readonly=True)
     
     receipt_line_ids = fields.One2many('tms.purchase.receipt.line', 'purchase_receipt_id', string='Receipt Line')
@@ -171,7 +171,7 @@ class TMSPurchaseReceiptLine(models.Model):
     purchase_receipt_id = fields.Many2one('tms.purchase.receipt.header', string='Purchase Receipt')
     # item_no = fields.Char('Item No.', readonly=True)
     line_no = fields.Integer('Line No.', store=True)
-    item_no = fields.Many2one('tms.item', string="Item No.", domain="[('no', 'in', available_item_ids)]")
+    item_no = fields.Many2one('tms.item', string="Item No.", domain="[('id', 'in', available_item_ids)]")
     description = fields.Char('Description', readonly=True, store=True)
     quantity = fields.Float('Quantity', readonly=True, store=True)
     uom = fields.Char(string="Unit of Measure", readonly=True, store=True)
@@ -190,7 +190,7 @@ class TMSPurchaseReceiptLine(models.Model):
                     ('no', '=', line.purchase_receipt_id.source_doc_no)
                 ], limit=1)
                 if purchase_order:
-                    line.available_item_ids = purchase_order.purchase_order_line_ids.mapped('no')
+                    line.available_item_ids = purchase_order.purchase_order_line_ids.mapped('no.id')
                 else:
                     line.available_item_ids = False
             else:
