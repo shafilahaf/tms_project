@@ -73,6 +73,18 @@
         </field>
     </record>
 
+    <record id="view_tms_item_tree_search_view" model="ir.ui.view">
+        <field name="name">tms.item.tree</field>
+        <field name="model">tms.item</field>
+        <field name="priority" eval="18"/>
+        <field name="arch" type="xml">
+            <tree string="TMS Items">
+                <field name="no"/>
+                <field name="description"/>
+            </tree>
+        </field>
+    </record>
+
     <record id="tms_item_view_search" model="ir.ui.view">
         <field name="name">tms_item.view.search</field>
         <field name="model">tms.item</field>
