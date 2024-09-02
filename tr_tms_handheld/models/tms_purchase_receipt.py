@@ -158,7 +158,7 @@ class TMSPurchaseReceiptHeader(models.Model):
                     response.raise_for_status()
                 except requests.exceptions.RequestException as e:
                     _logger.error(f"HTTP error occurred while submitting entry {entry.id}: {e}")
-                    raise UserError(f"HTTP error occurred while submitting entry {entry.id}: {e}")
+                    raise UserError(f"HTTP error occurred while submitting entry {entry.id}: {e} {response.text}")
                 except ValueError as e:
                     _logger.error(f"JSON encode error while submitting entry {entry.id}: {e} - Data: {data}")
                     raise UserError(f"JSON encode error while submitting entry {entry.id}: {e} - Data: {data}")

@@ -12,10 +12,28 @@
               <field name="item_no"/>
               <field name="description"/>
               <field name="description_2"/>
+              <field name="barcode_type_id" />
+              <field name="barcode_code" />
             </group>
           </sheet>
         </form>
       </field>
     </record>
+
+    <record id="tms_item_variant_view_tree" model="ir.ui.view">
+      <field name="name">tms.item.variant.view.tree</field>
+      <field name="model">tms.item.variant</field>
+      <field name="arch" type="xml">
+        <tree string="">
+            <field name="code"/>
+            <field name="item_no"/>
+            <field name="description"/>
+            <field name="description_2"/>
+            <field name="barcode_type_id" />
+            <field name="barcode_code" />
+        </tree>
+      </field>
+    </record>
+
   </data>
 </odoo>

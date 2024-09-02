@@ -119,7 +119,6 @@ class TMSPurchaseOrderWizard(models.TransientModel):
         else:
             raise UserError('No data found in response')
 
-
     def create_po_unchecklist(self, doc_type ,doc_no):
         # url = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/PurchaseOrders?$format=json'
         url = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/POArch?$format=json'
