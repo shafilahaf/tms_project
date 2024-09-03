@@ -37,7 +37,7 @@
                             <tree editable="bottom">
                                 <field name="no" />
                                 <field name="description"/>
-                                <field name="unit_of_measure" string="UoM"/>
+                                <field name="unit_of_measure_code" string="UoM"/>
                                 <field name="quantity" string="Qty."/>
                                 <field name="qty_to_receive" string="Qty. To Receive"/>
                                 <field name="qty_received" string="Qty. Received"/>
@@ -46,7 +46,7 @@
                                 <group>
                                     <field name="no" />
                                     <field name="description"/>
-                                    <field name="unit_of_measure"/>
+                                    <field name="unit_of_measure_code"/>
                                     <field name="quantity"/>
                                     <field name="qty_to_receive"/>
                                     <field name="qty_received"/>

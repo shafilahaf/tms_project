@@ -50,6 +50,7 @@
                                     <field name="qty_to_receive" force_save="1"/>
                                     <field name="qty_received" force_save="1"/>
                                     <field name="available_item_ids" invisible="1"/>
+                                    <button name="action_open_reservation_entry" string="Reservation Entry" type="object" class="oe_highlight" />
                                 </tree>
                                 <form>
                                     <group>
