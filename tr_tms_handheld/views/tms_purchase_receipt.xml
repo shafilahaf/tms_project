@@ -50,7 +50,7 @@
                                     <field name="qty_to_receive" force_save="1"/>
                                     <field name="qty_received" force_save="1"/>
                                     <field name="available_item_ids" invisible="1"/>
-                                    <button name="action_open_reservation_entry" string="Reservation Entry" type="object" class="oe_highlight" />
+                                    <button name="action_view_reservation_entries" string="Reservation Entry" type="object" class="oe_highlight" />
                                 </tree>
                                 <form>
                                     <group>
@@ -71,5 +71,15 @@
             </form>
         </field>
     </record>
+
+    <record id="action_tms_reservation_entry" model="ir.actions.act_window">
+        <field name="name">Reservation Entries</field>
+        <field name="res_model">tms.reservation.entry</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="tms_reservation_entry_view_tree"/>
+        <field name="context">{}</field>
+        <field name="domain">[]</field>
+    </record>
+
 
 </odoo>

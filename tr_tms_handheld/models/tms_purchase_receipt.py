@@ -275,15 +275,17 @@ class TMSPurchaseReceiptLine(models.Model):
                     self.uom = False
                     self.qty_to_receive = 0.0
                     
-    def action_open_reservation_entry(self):
+    def action_view_reservation_entries(self):
         """
-        Open Reservation Entry filtered by item_no and source_id
+        This method returns an action to open the tms.reservation.entry tree view,
+        filtered by the current item's item_no and source_id (document_no).
         """
         self.ensure_one()
-        action = self.env.ref('tr_tms_handheld.tms_reservation_entry_view_tree').read()[0]
-        action['domain'] = [
-            ('item_no', '=', self.item_no.no),
-            ('source_id', '=', self.purchase_receipt_id.document_no)
-        ]
-        action['context'] = {'default_item_no': self.item_no.no, 'default_source_id': self.purchase_receipt_id.document_no}
+        action = self.env.ref('tr_tms_handheld.action_tms_reservation_entry').read()[0]
+        
+        action['domain'] = [('item_no', '=', self.item_no.no),
+                            ('source_id', '=', self.purchase_receipt_id.document_no)]
+        
+        action['context'] = dict(self.env.context, create=False)
+        
         return action
