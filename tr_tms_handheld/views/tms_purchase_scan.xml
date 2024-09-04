@@ -19,16 +19,16 @@
                     <group>
                         <field name="item_no" options="{'no_create': True, 'no_create_edit':True}" context="{'tree_view_ref':'tr_tms_handheld.view_tms_item_tree_search_view'}"/>
                         <field name="item_description" force_save="1"/>
-                        <field name="serial_number" attrs="{'invisible': ['|', ('contains_lot', '=', True), ('item_tracking_code', '=', False)]}"/>
-                        <field name="lot_number" attrs="{'invisible': ['|', ('contains_lot', '=', False), ('item_tracking_code', '=', False)]}"/>
-                        <field name="quantity" widget="char" attrs="{'invisible': [('contains_sn', '=', True)]}"/>
+                        <field name="serial_number" attrs="{'invisible': [('contains_sn','=',False)]}"/>
+                        <field name="lot_number" attrs="{'invisible': [('contains_lot','=',False)]}"/>
+                        <field name="quantity" widget="char" attrs="{'invisible': [('contains_sn','=',True)]}"/>
                         <field name="available_item_ids" invisible="1"/>
                         <field name="item_tracking_code" invisible="1"/>
                         <field name="contains_sn" invisible="1"/>
                         <field name="contains_lot" invisible="1"/>
                     </group>
                     <notebook>
-                        <page name="reservation_entry" string="Reservation Entry" attrs="{'invisible': [('item_tracking_code', '=', False)]}">
+                        <page name="reservation_entry" string="Reservation Entry" attrs="{'invisible': [('contains_lot','=',False), ('contains_sn','=',False)]}">
                             <field name="reservation_entry_ids">
                                 <tree editable="bottom">
                                     <field name="serial_no" />
