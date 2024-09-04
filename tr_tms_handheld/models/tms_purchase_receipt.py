@@ -5,6 +5,7 @@ import requests
 import logging
 import json
 from datetime import date
+import xml.etree.ElementTree as ET
 
 _logger = logging.getLogger(__name__)
 class TMSPurchaseReceiptHeader(models.Model):
@@ -76,16 +77,42 @@ class TMSPurchaseReceiptHeader(models.Model):
             try:
                 response = requests.post(url, headers=headers, auth=auth, json=data)
                 response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+            # Parse the XML error response to extract the specific message
+                try:
+                    root = ET.fromstring(response.text)
+                    error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
+                except ET.ParseError:
+                    error_message = response.text  # Fallback to the full response text if XML parsing fails
+                _logger.error(f"HTTP error occurred while submitting line: {error_message}")
+                raise UserError(error_message)
             except requests.exceptions.RequestException as e:
-                _logger.error(f"HTTP error occurred while submitting line  {e}")
-                raise UserError(f"HTTP error occurred while submitting line  {e}")
+                error_message = f"HTTP error occurred: {str(e)}"
+                _logger.error(error_message)
+                raise UserError(error_message)
             except ValueError as e:
-                _logger.error(f"JSON encode error while submitting line  {e}{data}")
-                raise UserError(f"JSON encode error while submitting line  {e}{data}")
+                error_message = f"JSON encode error: {str(e)} {data}"
+                _logger.error(error_message)
+                raise UserError(error_message)
         self.handheld_sn()
         self.posting_receipt()
         
-        raise UserError("Receipt has been successfully submitted and processed.")
+        purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
+        if not purchase_order:
+            raise ValidationError('Related Purchase Order not found.')
+        
+        return {
+            'name': 'Purchase Order',
+            'view_mode': 'form',
+            'res_model': 'tms.purchase.order.header',
+            'type': 'ir.actions.act_window',
+            'target': 'current',
+            'res_id': purchase_order.id,
+            'context': {
+                # 'form_view_initial_mode': 'edit',
+                'create': False, 'edit': False, 'delete': False
+            }
+        }
         
     def posting_receipt(self):
         """
@@ -109,12 +136,23 @@ class TMSPurchaseReceiptHeader(models.Model):
             response = requests.post(url2, headers=headers, auth=auth, json=data2)
             response.raise_for_status()
             # raise UserError(f"Successfully submitted line {line.line_no} for document {self.source_doc_no}.")
+        except requests.exceptions.HTTPError as e:
+            # Parse the XML error response to extract the specific message
+            try:
+                root = ET.fromstring(response.text)
+                error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
+            except ET.ParseError:
+                error_message = response.text  # Fallback to the full response text if XML parsing fails
+            _logger.error(f"HTTP error occurred while posting receipt: {error_message}")
+            raise UserError(error_message)
         except requests.exceptions.RequestException as e:
-            _logger.error(f"HTTP error occurred while submitting line  {e}")
-            raise UserError(f"HTTP error occurred while submitting line  {response.text}")
+            error_message = f"HTTP error occurred: {str(e)}"
+            _logger.error(error_message)
+            raise UserError(error_message)
         except ValueError as e:
-            _logger.error(f"JSON encode error while submitting line  {e}")
-            raise UserError(f"JSON encode error while submitting line  {e}")
+            error_message = f"JSON encode error: {str(e)} {data2}"
+            _logger.error(error_message)
+            raise UserError(error_message)
     
     def handheld_sn(self):
         """
@@ -156,12 +194,23 @@ class TMSPurchaseReceiptHeader(models.Model):
                 try:
                     response = requests.post(url, headers=headers, auth=auth, json=data)
                     response.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    try:
+                        # Parse the JSON error response
+                        error_data = response.json()
+                        error_message = error_data.get('odata.error', {}).get('message', {}).get('value', response.text)
+                    except (json.JSONDecodeError, KeyError):
+                        error_message = response.text  # Fallback to the full response text if JSON parsing fails
+                    _logger.error(f"HTTP error occurred while submitting entry {entry.id}: {error_message}")
+                    raise UserError(error_message)
                 except requests.exceptions.RequestException as e:
-                    _logger.error(f"HTTP error occurred while submitting entry {entry.id}: {e}")
-                    raise UserError(f"HTTP error occurred while submitting entry {entry.id}: {e}")
+                    error_message = f"HTTP error occurred: {str(e)}"
+                    _logger.error(f"HTTP error occurred while submitting entry {entry.id}: {error_message}")
+                    raise UserError(error_message)
                 except ValueError as e:
-                    _logger.error(f"JSON encode error while submitting entry {entry.id}: {e} - Data: {data}")
-                    raise UserError(f"JSON encode error while submitting entry {entry.id}: {e} - Data: {data}")
+                    error_message = f"JSON encode error: {str(e)} - Data: {data}"
+                    _logger.error(f"JSON encode error while submitting entry {entry.id}: {error_message}")
+                    raise UserError(error_message)
             
     
 class TMSPurchaseReceiptLine(models.Model):
@@ -225,5 +274,18 @@ class TMSPurchaseReceiptLine(models.Model):
                     self.quantity = 0.0
                     self.uom = False
                     self.qty_to_receive = 0.0
-
-
+                    
+    def action_view_reservation_entries(self):
+        """
+        This method returns an action to open the tms.reservation.entry tree view,
+        filtered by the current item's item_no and source_id (document_no).
+        """
+        self.ensure_one()
+        action = self.env.ref('tr_tms_handheld.action_tms_reservation_entry').read()[0]
+        
+        action['domain'] = [('item_no', '=', self.item_no.no),
+                            ('source_id', '=', self.purchase_receipt_id.document_no)]
+        
+        action['context'] = dict(self.env.context, create=False)
+        
+        return action

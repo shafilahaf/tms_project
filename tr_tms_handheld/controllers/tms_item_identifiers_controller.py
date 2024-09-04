@@ -15,22 +15,21 @@ class TmsItemIdentifiers(http.Controller):
         item_no = data.get('Item_No.')
         variant_code = data.get('Variant_Code')
         unit_of_measure_code = data.get('Unit_of_Measure_Code')
-        
-        if not code or not item_no:
-            return {
-                'error': 'Code and Item No. are required',
-                'response': 400
-            }
 
         tms_item_identifiers = request.env['tms.item.identifiers'].sudo()
+        tms_uom_model = request.env['tms.unit.of.measures'].sudo()
+        item = request.env['tms.item'].sudo()
+        
+        uom_record = tms_uom_model.search([('code', '=', unit_of_measure_code)], limit=1)
+        item_record = item.search([('no', '=', item_no)], limit=1)
 
         if tms_item_identifiers.search([('code', '=', code)]):
-            uom = tms_item_identifiers.search([('code', '=', code)])
-            uom.write({
+            item_identifier = tms_item_identifiers.search([('code', '=', code)])
+            item_identifier.write({
                 'code': code,
-                'item_no': item_no,
+                'item_no': item_record.id,
                 'variant_code': variant_code,
-                'unit_of_measure_code': unit_of_measure_code
+                'unit_of_measure_code': uom_record.id,
             })
             return {
                 'message': 'Item Identifiers updated successfully',
@@ -40,9 +39,9 @@ class TmsItemIdentifiers(http.Controller):
         try:
             tms_item_identifiers.create({
                 'code': code,
-                'item_no': item_no,
+                'item_no': item_record.id,
                 'variant_code': variant_code,
-                'unit_of_measure_code': unit_of_measure_code
+                'unit_of_measure_code': uom_record.id,
             })
             return {
                 'message': 'Item Identifiers created successfully',

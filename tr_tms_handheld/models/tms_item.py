@@ -4,7 +4,7 @@ from odoo.exceptions import UserError, ValidationError
 class TmsItem(models.Model):
     _name = 'tms.item'
     _description = 'TMS Item'
-    _rec_name = 'no'
+    _rec_name = 'combination'
 
     no = fields.Char(string='No.', required=True)
     description = fields.Text(string='Description', required=True)
@@ -46,6 +46,13 @@ class TmsItem(models.Model):
     has_been_sent_to_nav = fields.Boolean(string='Has been sent to NAV', default=False)
     etag = fields.Char(string='ETag')
     
+    combination = fields.Char(string='Combination', compute='_compute_fields_combination')
+    
+    @api.depends('no', 'description')
+    def _compute_fields_combination(self):
+        for test in self:
+            test.combination = test.no + ' - ' + test.description
+    
     # @api.model
     # def name_search(self, name='', args=None, operator='ilike', limit=100):
     #     args = list(args or [])
@@ -56,3 +63,10 @@ class TmsItem(models.Model):
     #     # Perform the search with the domain
     #     recordset = self.search(domain + args, limit=limit)
     #     return recordset.name_get()
+    
+    def name_get(self):
+        result = []
+        for rec in self:
+            display_name = f"{rec.no} - {rec.description}"
+            result.append((rec.id, display_name))
+        return result

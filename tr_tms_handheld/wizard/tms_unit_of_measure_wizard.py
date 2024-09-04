@@ -13,8 +13,6 @@ class TMSUnitofMeasureWizard(models.TransientModel):
     description = fields.Char(string='Description', required=True, default='This is wizard for syncing Unit of Measure from NAV')
     company = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company, readonly=True)
 
-    
-    
     def get_unit_of_measure(self):
         url = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/UOM?$format=json'
         headers = {'Content-Type': 'application/json'}
@@ -42,7 +40,7 @@ class TMSUnitofMeasureWizard(models.TransientModel):
         if 'value' in data:
             tms_uom = self.env['tms.unit.of.measures']
             for uom in data['value']:
-                uom_code = tms_uom.search([('code', '=', uom['Code'])])
+                uom_code = tms_uom.search([('code', '=', uItem_Variantsom['Code'])])
                 if not uom_code:
                     tms_uom.create({
                         'code': uom['Code'],

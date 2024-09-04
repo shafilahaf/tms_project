@@ -13,3 +13,4 @@ from . import tms_reservation_entry
 from . import tms_item_journal_line
 from . import tms_purchase_receipt
 from . import tms_purchase_receipt_scan
+from . import tms_barcode_type
