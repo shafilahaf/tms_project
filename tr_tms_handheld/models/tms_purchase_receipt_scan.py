@@ -196,7 +196,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
         existing_entry = self.reservation_entry_ids.filtered(lambda r: r.serial_no == self.serial_number)
         
         if existing_entry:
-            existing_entry.lot_number = self.lot_number or existing_entry.lot_no
+            # existing_entry.lot_number = self.lot_number or existing_entry.lot_no
             existing_entry.quantity = 1 if self.contains_sn else self.quantity
         else:
             self.reservation_entry_ids = [(0, 0, {

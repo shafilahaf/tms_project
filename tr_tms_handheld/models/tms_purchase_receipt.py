@@ -178,9 +178,9 @@ class TMSPurchaseReceiptHeader(models.Model):
                     ('purchase_receipt_id', '=', self.id)
                 ], limit=1)
                 
-                if not receipt_line:
-                    _logger.warning(f"No matching receipt line found for item {entry.item_no.id} in receipt {self.id}")
-                    continue
+                # if not receipt_line:
+                #     _logger.warning(f"No matching receipt line found for item {entry.item_no.id} in receipt {self.id}")
+                #     continue
                 
                 data = {
                     "Processed_Header_ID": str(self.id),
