@@ -163,13 +163,12 @@ class TMSPurchaseReceiptScanItem(models.Model):
                 'lot_no': entry.lot_no,
             })
 
-        # Delete empty tms.reservation.entry records where source_id is empty
+        # Delete empty reservation records where source_id is empty
         empty_source_entries = self.env['tms.reservation.entry'].search([
             ('source_id', '=', False)
         ])
         empty_source_entries.unlink()
 
-        # Optionally, clear the scanned item
         self.clear_value()
 
     # V2
@@ -194,7 +193,6 @@ class TMSPurchaseReceiptScanItem(models.Model):
             self._create_or_update_reservation_entry()
 
     def _create_or_update_reservation_entry(self):
-        # To Do : Ask, harus tau pembeda mana yang butuh keduanya.. kalo salah satu susah definenya
         existing_entry = self.reservation_entry_ids.filtered(lambda r: r.serial_no == self.serial_number)
         
         if existing_entry:
