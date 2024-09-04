@@ -128,16 +128,16 @@ class TMSPurchaseReceiptScanItem(models.Model):
         ], limit=1)
 
         # Calculate the new total qty_received
-        new_qty_received = (receipt_line.qty_received if receipt_line else 0.0) + qty_to_receive
+        new_qty_to_received = (receipt_line.qty_to_receive if receipt_line else 0.0) + qty_to_receive
 
         # Validation to ensure qty_received does not exceed qty_to_receive
-        if new_qty_received > quantity:
+        if new_qty_to_received > quantity:
             raise ValidationError(
                 'Total received quantity for item %s exceeds the quantity to receive.' % self.item_no.no
             )
 
         if receipt_line:
-            receipt_line.qty_received += qty_to_receive
+            receipt_line.qty_to_receive += qty_to_receive
         else:
             # Create a new receipt line
             self.env['tms.purchase.receipt.line'].create({
@@ -146,8 +146,8 @@ class TMSPurchaseReceiptScanItem(models.Model):
                 'description': self.item_no.description,
                 'quantity': quantity,
                 'uom': self.item_no.base_unit_of_measure_id,
-                'qty_received': qty_to_receive,
-                'qty_to_receive': quantity,
+                # 'qty_received': quantity,
+                'qty_to_receive': qty_to_receive,
                 'line_no': line_no
             })
 

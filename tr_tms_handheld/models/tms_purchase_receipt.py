@@ -71,7 +71,7 @@ class TMSPurchaseReceiptHeader(models.Model):
                 "Document_Type": "Purchase Order",
                 "Document_No": self.source_doc_no,
                 "Line_No": str(line.line_no),
-                "Quantity": str(line.qty_received),
+                "Quantity": str(line.qty_to_receive),
                 "Processed_Header_ID": str(self.id)
             }
             try:
