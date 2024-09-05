@@ -94,7 +94,11 @@ class TMSPurchaseReceiptHeader(models.Model):
                 error_message = f"JSON encode error: {str(e)} {data}"
                 _logger.error(error_message)
                 raise UserError(error_message)
-        self.handheld_sn()
+        # self.handheld_sn()
+        for line in self.receipt_line_ids:
+            if line.item_no and (line.item_no.item_tracking_code in ['SN', 'Lot']):
+                self.handheld_sn()
+                break 
         self.posting_receipt()
         
         purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
