@@ -72,7 +72,8 @@ class TMSPurchaseReceiptHeader(models.Model):
                 "Document_No": self.source_doc_no,
                 "Line_No": str(line.line_no),
                 "Quantity": str(line.qty_to_receive),
-                "Processed_Header_ID": str(self.id)
+                "Processed_Header_ID": str(self.id),
+                "Posting_Date": self.posting_date
             }
             try:
                 response = requests.post(url, headers=headers, auth=auth, json=data)
@@ -193,6 +194,7 @@ class TMSPurchaseReceiptHeader(models.Model):
                     "Serial_No": entry.serial_no if entry.serial_no else "",
                     "Lot_No": entry.lot_no if entry.lot_no else "",
                     "Expired_Date": entry.expiration_date.isoformat() if entry.expiration_date else date.min.isoformat(),
+                    "Quantity": entry.quantity
                 }
                 
                 try:

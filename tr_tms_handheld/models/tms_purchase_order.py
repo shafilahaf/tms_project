@@ -38,6 +38,11 @@ class TmsPurchaseOrderHeader(models.Model):
     return_shipment_no_series = fields.Char(string="Return Shipment No. Series", size=10)
     store_no = fields.Char(string="Store No.", size=10)
 
+    # update
+    complete_received = fields.Boolean('Complete Received')
+    po_reopen = fields.Boolean('Reopen')
+    # update
+
     purchase_order_line_ids = fields.One2many('tms.purchase.order.line', 'header_id', string='Purchase Order Lines')
     
     def create_po_receipt(self):

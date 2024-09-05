@@ -32,6 +32,8 @@ class TmsPurchaseHeader(http.Controller):
             return_shipment_no = data.get('Return Shipment No.')
             return_shipment_no_series = data.get('Return Shipment No. Series')
             store_no = data.get('Store No.')
+            complete_received = data.get('Complete Received')
+            po_reopen = data.get('ReOpen')
 
             tms_purchase = request.env['tms.purchase.order.header'].sudo()
             purchase_order = tms_purchase.search([('document_type', '=', document_type), ('no', '=', no)])
@@ -64,7 +66,9 @@ class TmsPurchaseHeader(http.Controller):
                     'status': status,
                     'return_shipment_no': return_shipment_no,
                     'return_shipment_no_series': return_shipment_no_series,
-                    'store_no': store_no
+                    'store_no': store_no,
+                    'complete_received': complete_received,
+                    'po_reopen': po_reopen,
                 })
             else:
                 purchase_order = tms_purchase.create({
@@ -90,7 +94,9 @@ class TmsPurchaseHeader(http.Controller):
                     'status': status,
                     'return_shipment_no': return_shipment_no,
                     'return_shipment_no_series': return_shipment_no_series,
-                    'store_no': store_no
+                    'store_no': store_no,
+                    'complete_received': complete_received,
+                    'po_reopen': po_reopen,
                 })
 
             return {

@@ -29,6 +29,8 @@
                         <field name="order_date" />
                         <field name="location_code" />
                         <field name="store_no" />
+                        <field name="complete_received" />
+                        <field name="po_reopen" />
                     </group>
                 </group>
                 <notebook>
