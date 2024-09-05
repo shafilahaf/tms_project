@@ -20,6 +20,8 @@ class TMSPurchaseReceiptHeader(models.Model):
     company = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company, readonly=True)
     
     receipt_line_ids = fields.One2many('tms.purchase.receipt.line', 'purchase_receipt_id', string='Receipt Line')
+
+    state = fields.Selection([('draft', 'Draft'), ('submitted', 'Posted')], string='Status', default='draft', required=True)
     
     @api.model
     def create(self, vals):
@@ -73,7 +75,6 @@ class TMSPurchaseReceiptHeader(models.Model):
                 "Line_No": str(line.line_no),
                 "Quantity": str(line.qty_to_receive),
                 "Processed_Header_ID": str(self.id),
-                "Posting_Date": self.posting_date
             }
             try:
                 response = requests.post(url, headers=headers, auth=auth, json=data)
@@ -101,6 +102,7 @@ class TMSPurchaseReceiptHeader(models.Model):
                 self.handheld_sn()
                 break 
         self.posting_receipt()
+        self.state = 'submitted'
         
         purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
         if not purchase_order:
@@ -135,7 +137,8 @@ class TMSPurchaseReceiptHeader(models.Model):
              'Document_Type': "Purchase Order",
              'Document_No': self.source_doc_no,
              "Processed_Header_ID": str(self.id),
-             'Post_Action': str(1)
+             'Post_Action': str(1),
+             "Posting_Date": self.posting_date.isoformat()
         }
         try:
             response = requests.post(url2, headers=headers, auth=auth, json=data2)
@@ -187,18 +190,18 @@ class TMSPurchaseReceiptHeader(models.Model):
                 #     _logger.warning(f"No matching receipt line found for item {entry.item_no.id} in receipt {self.id}")
                 #     continue
                 
-                data = {
+                data_sn = {
                     "Processed_Header_ID": str(self.id),
                     "Line_ID": str(receipt_line.id),
                     "Line_No": str(receipt_line.line_no),
                     "Serial_No": entry.serial_no if entry.serial_no else "",
                     "Lot_No": entry.lot_no if entry.lot_no else "",
                     "Expired_Date": entry.expiration_date.isoformat() if entry.expiration_date else date.min.isoformat(),
-                    "Quantity": entry.quantity
+                    "Quantity": str(entry.quantity)
                 }
                 
                 try:
-                    response = requests.post(url, headers=headers, auth=auth, json=data)
+                    response = requests.post(url, headers=headers, auth=auth, json=data_sn)
                     response.raise_for_status()
                 except requests.exceptions.HTTPError as e:
                     try:

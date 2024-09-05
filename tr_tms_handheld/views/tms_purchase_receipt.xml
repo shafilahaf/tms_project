@@ -32,6 +32,7 @@
                         <group>
                             <field name="document_no" />
                             <field name="source_doc_no" />
+                            <field name="state" readonly="1"/>
                         </group>
                         <group>
                             <field name="posting_date" />
@@ -50,7 +51,7 @@
                                     <field name="qty_to_receive" force_save="1"/>
                                     <field name="qty_received" force_save="1"/>
                                     <field name="available_item_ids" invisible="1"/>
-                                    <field name="item_tracking_code"/>
+                                    <field name="item_tracking_code" invisible="1"/>
                                     <!-- <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" /> -->
                                     <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" attrs="{'invisible': [('item_tracking_code', '=', '')]}" />
                                 </tree>
@@ -64,7 +65,7 @@
                                         <field name="qty_to_receive" />
                                         <field name="qty_received" />
                                         <field name="available_item_ids" invisible="1"/>
-                                        <field name="item_tracking_code"/>
+                                        <field name="item_tracking_code" invisible="1"/>
                                         <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" attrs="{'invisible': [('item_tracking_code', '=', '')]}" />
                                     </group>
                                 </form>
