@@ -7,14 +7,10 @@
         <field name="arch" type="xml">
             <tree string="">
                 <field name="item_no" />
-                <field name="location_code" />
-                <field name="source_type" />
-                <field name="source_id" />
-                <field name="source_ref_no" />
-                <field name="quantity" />
-                <field name="expiration_date" />
                 <field name="serial_no" />
                 <field name="lot_no" />
+                <field name="quantity" />
+                <field name="expiration_date" />
             </tree>
         </field>
     </record>

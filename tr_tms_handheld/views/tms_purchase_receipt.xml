@@ -50,7 +50,9 @@
                                     <field name="qty_to_receive" force_save="1"/>
                                     <field name="qty_received" force_save="1"/>
                                     <field name="available_item_ids" invisible="1"/>
-                                    <button name="action_view_reservation_entries" string="Reservation Entry" type="object" class="oe_highlight" />
+                                    <field name="item_tracking_code"/>
+                                    <!-- <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" /> -->
+                                    <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" attrs="{'invisible': [('item_tracking_code', '=', '')]}" />
                                 </tree>
                                 <form>
                                     <group>
@@ -62,6 +64,8 @@
                                         <field name="qty_to_receive" />
                                         <field name="qty_received" />
                                         <field name="available_item_ids" invisible="1"/>
+                                        <field name="item_tracking_code"/>
+                                        <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" attrs="{'invisible': [('item_tracking_code', '=', '')]}" />
                                     </group>
                                 </form>
                             </field>

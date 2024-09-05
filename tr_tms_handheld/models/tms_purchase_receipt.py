@@ -230,6 +230,7 @@ class TMSPurchaseReceiptLine(models.Model):
     uom = fields.Char(string="Unit of Measure", readonly=True, store=True)
     qty_to_receive = fields.Float('Qty To Receive',readonly=True, store=True)
     qty_received = fields.Float('Qty Received')
+    item_tracking_code = fields.Char(string='Item Tracking Code', related='item_no.item_tracking_code',store=True)
     
     available_item_ids = fields.Many2many('tms.item', compute='_compute_available_item_ids', store=False)
     
