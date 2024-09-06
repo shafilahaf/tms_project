@@ -22,6 +22,7 @@
                 <button name="create_po_receipt" string="Create Receipt" type="object" class="oe_highlight" />
             </header>
             <sheet>
+                <button name="receipt_po" type="object" string="View Receipts" class="btn-primary"/>
                 <group>
                     <group>
                         <field name="no" />
@@ -30,7 +31,7 @@
                         <field name="location_code" />
                         <field name="store_no" />
                         <field name="complete_received" />
-                        <field name="po_reopen" />
+                        <field name="status" />
                     </group>
                 </group>
                 <notebook>
@@ -73,6 +74,16 @@
         </search>
     </field>
 </record>
+
+<!-- <record id="visibility_purchase_header" model="ir.rule">
+    <field name="name">Only see PO where complete_received=False and Status Released</field>
+    <field name="model_id" ref="model_tms_purchase_order_header"/>
+    <field name="domain_force">[('complete_received', '=', False), ('status', '=', 'Released')]</field>
+    <field name = "perm_read" eval = "True" /> 
+    <field name = "perm_write" eval = "False" /> 
+    <field name = "perm_create" eval = "False" /> 
+    <field name = "perm_unlink" eval = "False" /> 
+</record> -->
 
 
 </odoo>

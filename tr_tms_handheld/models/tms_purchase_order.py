@@ -37,6 +37,7 @@ class TmsPurchaseOrderHeader(models.Model):
     return_shipment_no = fields.Char(string="Return Shipment No.", size=20)
     return_shipment_no_series = fields.Char(string="Return Shipment No. Series", size=10)
     store_no = fields.Char(string="Store No.", size=10)
+    
 
     # update
     complete_received = fields.Boolean('Complete Received')
@@ -46,11 +47,10 @@ class TmsPurchaseOrderHeader(models.Model):
     purchase_order_line_ids = fields.One2many('tms.purchase.order.line', 'header_id', string='Purchase Order Lines')
     
     def create_po_receipt(self):
-        receipt_headerr = self.env['tms.purchase.receipt.header'].with_context(create=True, delete=True).create({ #.with_context(create=True, delete=True)
+        receipt_headerr = self.env['tms.purchase.receipt.header'].create({
             'source_doc_no': self.no,
-            # 'posting_date': self.posting_date,
-            # 'vendor_shipment_no': self.vendor_shipment_no,
         })
+
         return {
             'name': 'Receipt',
             'view_mode': 'form',
@@ -58,7 +58,14 @@ class TmsPurchaseOrderHeader(models.Model):
             'type': 'ir.actions.act_window',
             'target': 'current',
             'res_id': receipt_headerr.id,
+            'views': [(self.env.ref('tr_tms_handheld.purchase_receipt_2_view_form').id, 'form')],
         }
+
+    def receipt_po(self):
+        action = self.env.ref('tr_tms_handheld.action_receipt_po').read()[0]
+        action['domain'] = [('source_doc_no', '=', self.no)]
+        return action
+
 
 class TmsPurchaseOrderLine(models.Model):
     _name = 'tms.purchase.order.line'

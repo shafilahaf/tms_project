@@ -120,6 +120,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
         # Additional data from purchase order line
         quantity = purchase_order_line[0].quantity if purchase_order_line else 0.0
         line_no = purchase_order_line[0].line_no if purchase_order_line else 0.0
+        qty_received2 = purchase_order_line[0].qty_received if purchase_order_line else 0.0
 
         # Find or create the purchase receipt line
         receipt_line = self.env['tms.purchase.receipt.line'].search([
@@ -146,7 +147,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
                 'description': self.item_no.description,
                 'quantity': quantity,
                 'uom': self.item_no.base_unit_of_measure_id,
-                # 'qty_received': quantity,
+                'qty_received': qty_received2,
                 'qty_to_receive': qty_to_receive,
                 'line_no': line_no
             })
@@ -193,18 +194,42 @@ class TMSPurchaseReceiptScanItem(models.Model):
             self._create_or_update_reservation_entry()
 
     def _create_or_update_reservation_entry(self):
-        existing_entry = self.reservation_entry_ids.filtered(lambda r: r.serial_no == self.serial_number)
+        existing_entry = self.reservation_entry_ids.filtered(
+            lambda r: r.serial_no == self.serial_number or r.lot_no == self.lot_number
+        )
         
         if existing_entry:
-            # existing_entry.lot_number = self.lot_number or existing_entry.lot_no
-            existing_entry.quantity = 1 if self.contains_sn else self.quantity
-        else:
-            self.reservation_entry_ids = [(0, 0, {
-                'serial_no': self.serial_number,
-                'lot_no': self.lot_number,
-                'quantity': 1 if self.contains_sn else self.quantity,
-                'purchase_scan_id': self.id
-            })]
+            raise UserError("The Serial Number [%s] or Lot Number [%s] already exists in the current reservation entries." % (self.serial_number, self.lot_number))
         
+
+        reservation_domain = [
+            ('source_id', '=', self.purchase_receipt_id.document_no)
+        ]
+
+        if self.serial_number:
+            reservation_domain.append(('serial_no', '=', self.serial_number))
+        if self.lot_number:
+            reservation_domain.append(('lot_no', '=', self.lot_number))
+
+        
+        # reservation_entries = self.env['tms.reservation.entry'].search([
+        #     '|',
+        #     ('serial_no', '=', self.serial_number),
+        #     ('lot_no', '=', self.lot_number),
+        #     ('source_id', '=', self.purchase_receipt_id.document_no)
+        # ])
+
+        reservation_entries = self.env['tms.reservation.entry'].search(reservation_domain)
+        if reservation_entries:
+            raise UserError("The Serial Number [%s] or Lot Number [%s] already exists in the system." % (self.serial_number, self.lot_number))
+        
+        # Create a new entry if no duplicate is found
+        self.reservation_entry_ids = [(0, 0, {
+            'serial_no': self.serial_number,
+            'lot_no': self.lot_number,
+            'quantity': 1 if self.contains_sn else self.quantity,
+            'purchase_scan_id': self.id
+        })]
+
         self.serial_number = ''
         self.lot_number = ''

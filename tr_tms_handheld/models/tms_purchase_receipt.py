@@ -103,7 +103,15 @@ class TMSPurchaseReceiptHeader(models.Model):
                 break 
         self.posting_receipt()
         self.state = 'submitted'
-        
+
+        # draft_receipts = self.env['tms.purchase.receipt.header'].search([
+        #     ('source_doc_no', '=', self.source_doc_no),
+        #     ('state', '=', 'draft'),
+        #     ('id', '!=', self.id)  # Exclude the current receipt
+        # ])
+        # if draft_receipts:
+        #     draft_receipts.unlink()
+
         purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
         if not purchase_order:
             raise ValidationError('Related Purchase Order not found.')
@@ -116,7 +124,6 @@ class TMSPurchaseReceiptHeader(models.Model):
             'target': 'current',
             'res_id': purchase_order.id,
             'context': {
-                # 'form_view_initial_mode': 'edit',
                 'create': False, 'edit': False, 'delete': False
             }
         }
@@ -132,6 +139,9 @@ class TMSPurchaseReceiptHeader(models.Model):
         password = self.company.password_api
         
         auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
+
+        if self.posting_date == False:
+            raise UserError('Please enter the Posting Date before submit')
 
         data2 = {
              'Document_Type': "Purchase Order",
