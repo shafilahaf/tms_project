@@ -48,7 +48,7 @@
         <field name="res_model">tms.purchase.order.header</field>
         <field name="view_mode">tree,form</field>
         <field name="context">{'create': False, 'edit': False, 'delete': True}</field>
-        <field name="domain">[('complete_received', '=', False), ('status', '=', 'Released')]</field>
+        <!-- <field name="domain">[('complete_received', '=', False), ('status', '=', 'Released')]</field> -->
     </record>
 
     <record id="action_tms_sales" model="ir.actions.act_window">
