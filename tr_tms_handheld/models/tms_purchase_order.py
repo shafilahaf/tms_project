@@ -59,6 +59,9 @@ class TmsPurchaseOrderHeader(models.Model):
             'target': 'current',
             'res_id': receipt_headerr.id,
             'views': [(self.env.ref('tr_tms_handheld.purchase_receipt_2_view_form').id, 'form')],
+            'context': {
+                'create': True, 'edit': True, 'delete': True
+            }
         }
 
     def receipt_po(self):

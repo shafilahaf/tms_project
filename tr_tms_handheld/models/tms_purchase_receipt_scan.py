@@ -186,6 +186,9 @@ class TMSPurchaseReceiptScanItem(models.Model):
             'view_mode': 'form',
             'res_id': self.purchase_receipt_id.id,
             'target': 'inline',
+            'context': {
+                'form_view_initial_mode': 'edit',
+            }
         }
     
     @api.onchange('serial_number', 'lot_number')

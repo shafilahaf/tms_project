@@ -309,3 +309,4 @@ class TMSPurchaseReceiptLine(models.Model):
         action['context'] = dict(self.env.context, create=False)
         
         return action
+

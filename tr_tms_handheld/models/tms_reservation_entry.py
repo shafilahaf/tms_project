@@ -39,3 +39,30 @@ class TMSReservationEntry(models.Model):
                 '83': 83    # Item Journal
             }
             record.source_type_int = source_type_map.get(record.source_type, 0)
+    
+    def unlink(self):
+        """
+        Override the unlink method to update qty_to_receive in tms.purchase.receipt.line 
+        when a reservation entry is deleted.
+        """
+        for entry in self:
+            purchase_receipt_line = self.env['tms.purchase.receipt.line'].search([
+                ('item_no.no', '=', entry.item_no),
+                ('purchase_receipt_id.document_no', '=', entry.source_id)
+            ], limit=1)
+
+            if purchase_receipt_line:
+                remaining_reservation_entries = self.env['tms.reservation.entry'].search([
+                    ('item_no', '=', entry.item_no),
+                    ('source_id', '=', entry.source_id),
+                    ('id', '!=', entry.id)  
+                ])
+
+                if remaining_reservation_entries:
+                    purchase_receipt_line.qty_to_receive = sum(remaining_reservation_entries.mapped('quantity'))
+                    abcd = sum(remaining_reservation_entries.mapped('quantity'))
+                    print(abcd)
+                else:
+                    purchase_receipt_line.qty_to_receive = 0.0
+
+        return super(TMSReservationEntry, self).unlink()
