@@ -1,16 +1,17 @@
 from odoo import models, fields, api
-from odoo.exceptions import UserError, ValidationError    
+from odoo.exceptions import UserError, ValidationError
+import re
 
 class TMSPurchaseReceiptScanItem(models.Model):
     _name = 'tms.purchase.scan.item'
     _description = 'TMS Purchase Scan Item'
     _rec_name = 'purchase_receipt_id'
     
+    barcode_code = fields.Char(string="Scan Barcode")
     purchase_receipt_id = fields.Many2one('tms.purchase.receipt.header', string='Purchase Receipt')
     item_no = fields.Many2one('tms.item', string="Item No.", domain="[('id', 'in', available_item_ids)]")
     item_description = fields.Char('Item Description', readonly=True, store=True)
     quantity =  fields.Float('Quantity')
-    # sn_or_lotno = fields.Char('SN/Lot No.')
     reservation_entry_ids = fields.One2many('tms.reservation.entry', 'purchase_scan_id', string='Reservation Entry')
     item_tracking_code = fields.Char(string='Item Tracking Code', related='item_no.item_tracking_code')
     
@@ -21,6 +22,118 @@ class TMSPurchaseReceiptScanItem(models.Model):
 
     serial_number = fields.Char('Serial No.')
     lot_number = fields.Char('Lot No.')
+
+    @api.onchange('barcode_code')
+    def _onchange_barcode_code(self):
+        if self.barcode_code:
+            item_barcode = self.env['tms.item.identifiers'].search([
+                ('barcode_code','=',self.barcode_code),
+                ('blocked', '=', False)
+            ])
+            if item_barcode:
+                self.item_no = item_barcode.item_no.id
+            else:
+                array_barcode = self.split_barcode(self.barcode_code)
+                barcode_gs1_128 = self.extract_value_for_key_01(array_barcode)
+                item_barcode = self.env['tms.item.identifiers'].search([
+                    ('barcode_code','=', barcode_gs1_128),
+                    ('blocked', '=', False)
+                ])
+                if item_barcode:
+                    self.item_no = item_barcode.item_no.id
+                else:
+                    raise UserError('Item not found.')
+            
+            sn = self.extract_value_for_key_sn_21(array_barcode)
+            lot = self.extract_value_for_key_lot_1023(array_barcode)
+
+            if sn:
+                self.serial_number = sn
+            if lot:
+                self.lot_number = lot
+
+    # barcode
+    def split_barcode(self, barcode):
+        new_array_barcode = []
+        
+        def check_gs1_128_1(barcode):
+            two_digit_first = barcode[:2]
+            return two_digit_first in gs1_128_length_dict
+
+        def check_gs1_128_1_1(barcode):
+            two_digit_first = barcode[:2]
+            for key, value in gs1_128_length_dict.items():
+                if two_digit_first in key:
+                    barcode_group = barcode[:2+value]
+                    new_array_barcode.append({barcode_group[0:2]: barcode_group[2:]})
+                    return barcode.replace(barcode_group, '')
+            return barcode
+
+        def regex_gs1_128(digit_first, key, barcode):
+            regex = f"(?:{digit_first})(\\w+)(?:{key})"
+            matches = re.finditer(regex, barcode)
+            for match in matches:
+                return match.group(1)
+            return None
+
+        def check_gs1_128_2(barcode):
+            two_digit_first = barcode[:2]
+            regex_save = ''
+            for key2 in gs1_128_separator:
+                if two_digit_first != str(key2):
+                    regex_barcode = regex_gs1_128(two_digit_first, key2, barcode)
+                    if regex_barcode:
+                        if regex_save == '' or len(regex_save) > len(regex_barcode):
+                            regex_save = str(two_digit_first) + str(regex_barcode)
+            if regex_save:
+                barcode_group = regex_save
+            else:
+                barcode_group = barcode
+            new_array_barcode.append({barcode_group[0:2]: barcode_group[2:]})
+            return barcode.replace(barcode_group, '')
+
+        gs1_128_length_dict = {
+            '01': 14,
+            '11': 6,
+            '13': 6,
+            '15': 6,
+        }
+        gs1_128_separator = [10, 23, 21, 11, 13, 15, 17]
+        
+        barcode_2 = barcode
+        while barcode_2:
+            if check_gs1_128_1(barcode_2):
+                barcode_2 = check_gs1_128_1_1(barcode_2)
+            else:
+                barcode_2 = check_gs1_128_2(barcode_2)
+                
+        return new_array_barcode
+    
+    def extract_value_for_key_01(self, barcode_array):
+        """Extract the value corresponding to key '01'."""
+        for item in barcode_array:
+            if '01' in item:
+                return item['01']
+        return False  # Return False or keep the original barcode if '01' is not found
+    
+    def extract_value_for_key_sn_21(self, barcode_array):
+        """Extract the value corresponding to key '01'."""
+        for item in barcode_array:
+            if '21' in item:
+                return item['21']
+        return False  # Return False or keep the original barcode if '01' is not found
+    
+    def extract_value_for_key_lot_1023(self, barcode_array):
+        """Extract the value corresponding to key '01'."""
+        for item in barcode_array:
+            if '10' in item:
+                return item['10']
+            else:
+                if '23' in item:
+                    return item['23']
+        return False  # Return False or keep the original barcode if '01' is not found
+    # barcode
+
 
     @api.depends('item_tracking_code')
     def _compute_contains_sn(self):
@@ -50,6 +163,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
                     record.available_item_ids = [(5, 0, 0)]
             else:
                 record.available_item_ids = [(5, 0, 0)]
+
                 
     @api.onchange('item_no')
     def _onchange_item_no(self):
@@ -80,7 +194,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
         self.item_no = False
         self.item_description = False
         self.quantity = False
-        # self.sn_or_lotno = False
+        self.barcode_code = False
         self.reservation_entry_ids = [(5, 0, 0)]  # Clear the One2many field
     
     # V2
@@ -187,43 +301,6 @@ class TMSPurchaseReceiptScanItem(models.Model):
                 'form_view_initial_mode': 'edit',
             }
         }
-    
-    # @api.onchange('serial_number', 'lot_number')
-    # def _onchange_serial_or_lot(self):
-    #     if self.serial_number or self.lot_number:
-    #         self._create_or_update_reservation_entry()
-
-    # def _create_or_update_reservation_entry(self):
-    #     existing_entry = self.reservation_entry_ids.filtered(
-    #         lambda r: r.serial_no == self.serial_number or r.lot_no == self.lot_number
-    #     )
-        
-    #     if existing_entry:
-    #         raise UserError("The Serial Number [%s] or Lot Number [%s] already exists in the current reservation entries." % (self.serial_number, self.lot_number))
-        
-
-    #     reservation_domain = [
-    #         ('source_id', '=', self.purchase_receipt_id.document_no)
-    #     ]
-
-    #     if self.serial_number:
-    #         reservation_domain.append(('serial_no', '=', self.serial_number))
-    #     if self.lot_number:
-    #         reservation_domain.append(('lot_no', '=', self.lot_number))
-
-    #     reservation_entries = self.env['tms.reservation.entry'].search(reservation_domain)
-    #     if reservation_entries:
-    #         raise UserError("The Serial Number [%s] or Lot Number [%s] already exists in the system." % (self.serial_number, self.lot_number))
-        
-    #     self.reservation_entry_ids = [(0, 0, {
-    #         'serial_no': self.serial_number,
-    #         'lot_no': self.lot_number,
-    #         'quantity': 1 if self.contains_sn else self.quantity,
-    #         'purchase_scan_id': self.id
-    #     })]
-
-    #     self.serial_number = ''
-    #     self.lot_number = ''
 
     @api.onchange('serial_number')
     def _onchange_serial_number(self):

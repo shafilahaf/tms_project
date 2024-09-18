@@ -21,7 +21,7 @@ class TmsItemIdentifiers(models.Model):
         ('1', 'GSI 128'),
         ('2','Code 39'),
         ('3', 'QR')
-    ], string='Barcode type')
+    ], string='Barcode type', required=True)
     barcode_code = fields.Char(string="Barcode Code", store=True)
     blocked = fields.Boolean(strinng="Blocked")
     entry_no = fields.Integer(string="Entry No")
@@ -152,7 +152,7 @@ class TmsItemIdentifiers(models.Model):
     @api.onchange('barcode_code', 'barcode_type')
     def _onchange_barcode_code(self):
         if self.barcode_code:
-            if self.barcode_type == '1':
+            if self.barcode_type == '1' or self.barcode_type == '3':
                 self.barcode_code = self.extract_value_for_key_01(self.split_barcode(self.barcode_code))
 
     def split_barcode(self, barcode):
@@ -217,4 +217,6 @@ class TmsItemIdentifiers(models.Model):
             if '01' in item:
                 return item['01']
         return False  # Return False or keep the original barcode if '01' is not found
+    
+    
     # barcode split
