@@ -47,6 +47,26 @@ class TmsItem(models.Model):
     etag = fields.Char(string='ETag')
     
     combination = fields.Char(string='Combination', compute='_compute_fields_combination')
+
+    def open_item_identifiers(self):
+        default_uom_code = self.env['tms.unit.of.measures'].search([
+            ('code','=', self.base_unit_of_measure_id)
+        ], limit=1)
+        return {
+            'name': 'Item Identifiers',
+            'type': 'ir.actions.act_window',
+            'res_model': 'tms.item.identifiers',
+            'view_mode': 'tree,form',
+            'target': 'current',
+            'context': {
+                'default_item_no': self.id,
+                'default_unit_of_measure_code': default_uom_code.id,
+                'create': True, 'edit': True, 'delete': True
+            },
+            'domain': [('item_no', '=', self.id)]
+        }
+
+
     
     @api.depends('no', 'description')
     def _compute_fields_combination(self):

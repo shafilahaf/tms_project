@@ -4,6 +4,9 @@
         <field name="model">tms.item</field>
         <field name="arch" type="xml">
             <form string="TMS Item">
+                <header>
+                    <button name="open_item_identifiers" string="Item Identifiers" type="object" class="oe_highlight" />
+                </header>
                 <sheet>
                     <group>
                         <group>

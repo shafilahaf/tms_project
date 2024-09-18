@@ -15,23 +15,10 @@ class TmsItemVariant(http.Controller):
         item_no = data.get('Item_No.')
         description = data.get('Description')
         description_2 = data.get('Description_2')
-        # barcode_type_id = data.get('Barcode_Type')
-        # barcode_code = data.get('Barcode_Code')
-
         tms_item_variant = request.env['tms.item.variant'].sudo()
         
         item = request.env['tms.item'].sudo()
         item_record = item.search([('no', '=', item_no)], limit=1)
-        
-        # barcode_record = None
-        # if barcode_type_id:
-        #     # Search for the barcode type, if not found create a new one
-        #     barcode = request.env['tms.barcode.type'].sudo()
-        #     barcode_record = barcode.search([('name', '=', barcode_type_id)], limit=1)
-        #     if not barcode_record:
-        #         barcode_record = barcode.create({
-        #             'name': barcode_type_id
-        #         })
 
         if tms_item_variant.search([('code', '=', code)]):
             uom = tms_item_variant.search([('code', '=', code)])

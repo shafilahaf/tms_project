@@ -16,14 +16,12 @@ class TmsItemVariant(models.Model):
     item_no = fields.Many2one('tms.item', string='Item', required=True)
     description = fields.Text(string='Description')
     description_2 = fields.Text(string='Description 2')
-    # barcode_type_id = fields.Many2one('tms.barcode.type', string='Barcode Type')
     barcode_type_id = fields.Selection([
         ('1', 'GSI 128'),
         ('2','Code 39'),
         ('3', 'QR')
     ], string='Barcode type')
     barcode_code = fields.Char('Barcode Code')
-    # company = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company_id, readonly=True)
     
     def write(self, vals):
         res = super(TmsItemVariant, self).write(vals)

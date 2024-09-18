@@ -7,13 +7,31 @@
         <form string="TMS Item Identifiers">
           <sheet>
             <group>
-              <field name="code"/>
               <field name="item_no"/>
               <field name="variant_code"/>
               <field name="unit_of_measure_code"/>
+              <field name="barcode_type" />
+              <field name="barcode_code" widget="rt_widget_field_char_qr_cam" force_save="1"/>
+              <field name="blocked" />
+              <field name="entry_no" />
             </group>
           </sheet>
         </form>
+      </field>
+    </record>
+
+    <record id="tms_item_identifiers_view_tree" model="ir.ui.view">
+      <field name="name">tms.item.identifiers.view.tree</field>
+      <field name="model">tms.item.identifiers</field>
+      <field name="arch" type="xml">
+        <tree string="">
+              <field name="item_no"/>
+              <field name="variant_code"/>
+              <field name="unit_of_measure_code"/>
+              <field name="barcode_type" />
+              <field name="barcode_code" />
+              <field name="blocked" />
+        </tree>
       </field>
     </record>
   </data>
