@@ -30,6 +30,7 @@
     ],
     "assets": {
         "web.assets_backend": [
+            'tr_tms_handheld/static/src/css/tree_view.css'
         ],
     },
 }

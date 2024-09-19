@@ -1,0 +1,6 @@
+.o_list_view td[name="no"] {
+    width: 400px !important;
+    min-width: 400px !important;
+    max-width: 400px !important;
+    white-space: nowrap;
+}
