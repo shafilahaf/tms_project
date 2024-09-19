@@ -67,7 +67,8 @@
         <field name="model">tms.item</field>
         <field name="arch" type="xml">
             <tree string="TMS Items">
-                <field name="no"/>
+                <!-- Adjust as per requirement change the value of style-->
+                <field name="no" style="width: 400px !important;"/>
                 <field name="description"/>
                 <field name="vendor_no"/>
                 <field name="manufacturer_code"/>
