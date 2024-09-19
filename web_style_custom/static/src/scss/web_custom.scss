@@ -1,0 +1,8 @@
+.o_form_view {
+    @include media-breakpoint-down(sm) {
+        .o_group_col_6,
+        .o_group_col_8 {
+            width: 100%;
+        }        
+    }
+}
