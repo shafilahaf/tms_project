@@ -1,6 +1,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 import re
+from datetime import datetime
 
 class TMSPurchaseReceiptScanItem(models.Model):
     _name = 'tms.purchase.scan.item'
@@ -21,6 +22,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
     contains_lot = fields.Boolean(compute='_compute_contains_lot', store=True)
 
     serial_number = fields.Char('Serial No.')
+    exp_date = fields.Date('Exp Date')
     lot_number = fields.Char('Lot No.')
 
     @api.onchange('barcode_code')
@@ -33,8 +35,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
             if item_barcode:
                 self.item_no = item_barcode.item_no.id
             else:
-                array_barcode = self.split_barcode(self.barcode_code)
-                barcode_gs1_128 = self.extract_value_for_key_01(array_barcode)
+                barcode_gs1_128 = self.extract_value_for_key_01(self.process_barcode(self.barcode_code))
                 item_barcode = self.env['tms.item.identifiers'].search([
                     ('barcode_code','=', barcode_gs1_128),
                     ('blocked', '=', False)
@@ -44,37 +45,60 @@ class TMSPurchaseReceiptScanItem(models.Model):
                 else:
                     raise UserError('Item not found.')
             
-            sn = self.extract_value_for_key_sn_21(array_barcode)
-            lot = self.extract_value_for_key_lot_1023(array_barcode)
+            sn = self.extract_value_for_key_sn_21(self.process_barcode(self.barcode_code))
+            lot = self.extract_value_for_key_lot_1023(self.process_barcode(self.barcode_code))
+            exp_date = self.extract_value_for_key_exp_date_17(self.process_barcode(self.barcode_code))
 
             if sn:
                 self.serial_number = sn
             if lot:
                 self.lot_number = lot
 
+            if exp_date:
+                # Assuming exp_date is in DDMMYY format (like '251117')
+                try:
+                    # Parse date from DDMMYY format
+                    self.exp_date = datetime.strptime(exp_date, '%d%m%y').date()
+                except ValueError:
+                    raise UserError('Invalid expiration date format.')
+                
+
     # barcode
-    def split_barcode(self, barcode):
+    def process_barcode(self, barcode):
+        """Process the barcode according to GS1-128 standards."""
         new_array_barcode = []
-        
+
+        gs1_128_length_dict = {
+            '01': 14,
+            '10': 4,
+            '11': 6,
+            '13': 6,
+            '15': 6,
+            '17': 6
+        }
+
+        gs1_128_separator = [10, 23, 21, 11, 13, 15, 17]
+
         def check_gs1_128_1(barcode):
             two_digit_first = barcode[:2]
             return two_digit_first in gs1_128_length_dict
 
         def check_gs1_128_1_1(barcode):
             two_digit_first = barcode[:2]
-            for key, value in gs1_128_length_dict.items():
-                if two_digit_first in key:
-                    barcode_group = barcode[:2+value]
-                    new_array_barcode.append({barcode_group[0:2]: barcode_group[2:]})
-                    return barcode.replace(barcode_group, '')
+            length = gs1_128_length_dict.get(two_digit_first, 0)
+            if length:
+                barcode_group = barcode[:2+length]
+                new_array_barcode.append({barcode_group[:2]: barcode_group[2:]})
+                new_barcode = barcode[length+2:]  # Skip the length of the matched segment
+                return new_barcode
             return barcode
 
         def regex_gs1_128(digit_first, key, barcode):
-            regex = f"(?:{digit_first})(\\w+)(?:{key})"
+            regex = f"{digit_first}(\w+?)(?:{key})"
             matches = re.finditer(regex, barcode)
             for match in matches:
                 return match.group(1)
-            return None
+            return ''
 
         def check_gs1_128_2(barcode):
             two_digit_first = barcode[:2]
@@ -83,38 +107,33 @@ class TMSPurchaseReceiptScanItem(models.Model):
                 if two_digit_first != str(key2):
                     regex_barcode = regex_gs1_128(two_digit_first, key2, barcode)
                     if regex_barcode:
-                        if regex_save == '' or len(regex_save) > len(regex_barcode):
-                            regex_save = str(two_digit_first) + str(regex_barcode)
-            if regex_save:
-                barcode_group = regex_save
-            else:
+                        if not regex_save or len(regex_barcode) > len(regex_save[2:]):
+                            regex_save = two_digit_first + regex_barcode
+            if not regex_save:
                 barcode_group = barcode
-            new_array_barcode.append({barcode_group[0:2]: barcode_group[2:]})
-            return barcode.replace(barcode_group, '')
+                new_array_barcode.append({barcode_group[:2]: barcode_group[2:]})
+            else:
+                barcode_group = regex_save
+                new_array_barcode.append({barcode_group[:2]: barcode_group[2:]})
 
-        gs1_128_length_dict = {
-            '01': 14,
-            '11': 6,
-            '13': 6,
-            '15': 6,
-        }
-        gs1_128_separator = [10, 23, 21, 11, 13, 15, 17]
-        
+            new_barcode = barcode[len(barcode_group):]
+            return new_barcode
+
         barcode_2 = barcode
         while barcode_2:
             if check_gs1_128_1(barcode_2):
                 barcode_2 = check_gs1_128_1_1(barcode_2)
             else:
                 barcode_2 = check_gs1_128_2(barcode_2)
-                
+
         return new_array_barcode
-    
+
     def extract_value_for_key_01(self, barcode_array):
         """Extract the value corresponding to key '01'."""
         for item in barcode_array:
             if '01' in item:
                 return item['01']
-        return False  # Return False or keep the original barcode if '01' is not found
+        return self.barcode_code  # Keep the original if '01' is not found
     
     def extract_value_for_key_sn_21(self, barcode_array):
         """Extract the value corresponding to key '01'."""
@@ -131,6 +150,13 @@ class TMSPurchaseReceiptScanItem(models.Model):
             else:
                 if '23' in item:
                     return item['23']
+        return False  # Return False or keep the original barcode if '01' is not found
+    
+    def extract_value_for_key_exp_date_17(self, barcode_array):
+        """Extract the value corresponding to key '01'."""
+        for item in barcode_array:
+            if '17' in item:
+                return item['17']
         return False  # Return False or keep the original barcode if '01' is not found
     # barcode
 
@@ -340,10 +366,13 @@ class TMSPurchaseReceiptScanItem(models.Model):
         self.reservation_entry_ids = [(0, 0, {
             'serial_no': self.serial_number,
             'quantity': 1,  # Default quantity is 1 for serial number
-            'purchase_scan_id': self.id
+            'purchase_scan_id': self.id,
+            'expiration_date': self.exp_date if self.exp_date else False,
         })]
 
         self.serial_number = ''  # Clear after adding
+        self.barcode_code = ''
+        self.exp_date = ''
 
     def _create_lot_reservation_entry(self):
         existing_entry = self.reservation_entry_ids.filtered(
@@ -365,7 +394,11 @@ class TMSPurchaseReceiptScanItem(models.Model):
         self.reservation_entry_ids = [(0, 0, {
             'lot_no': self.lot_number,
             'quantity': self.quantity,  # Quantity is based on user input
-            'purchase_scan_id': self.id
+            'purchase_scan_id': self.id,
+            'expiration_date': self.exp_date if self.exp_date else False,
         })]
 
         self.lot_number = ''  # Clear after adding
+        self.quantity = ''
+        self.barcode_code = ''
+        self.exp_date = ''

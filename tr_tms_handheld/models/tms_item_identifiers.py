@@ -15,7 +15,7 @@ class TmsItemIdentifiers(models.Model):
     _rec_name = 'item_no'
 
     item_no = fields.Many2one('tms.item', string='Item')
-    variant_code = fields.Many2one('tms.item.variant', string='Variant Code')
+    variant_code = fields.Many2one('tms.item.variant', string='Variant Code', domain="[('item_no', '=', item_no)]")
     unit_of_measure_code = fields.Many2one('tms.unit.of.measures', string='Unit of Measures')
     barcode_type = fields.Selection([
         ('1', 'GSI 128'),
@@ -25,6 +25,15 @@ class TmsItemIdentifiers(models.Model):
     barcode_code = fields.Char(string="Barcode Code", store=True)
     blocked = fields.Boolean(strinng="Blocked")
     entry_no = fields.Integer(string="Entry No")
+
+    @api.onchange('item_no')
+    def _onchange_item_no(self):
+        if self.item_no:
+            base_unit_of_measure_id = self.item_no.base_unit_of_measure_id
+            return {'domain': {'unit_of_measure_code': [('code', '=', base_unit_of_measure_id)]}}
+        else:
+            # Clear the domain if no item is selected
+            return {'domain': {'unit_of_measure_code': []}}
 
     @api.model
     def create(self, vals):
@@ -85,7 +94,7 @@ class TmsItemIdentifiers(models.Model):
             "Barcode_Type": self.barcode_type,
             "Barcode_Code": self.barcode_code,
             "Variant_Code": self.variant_code.code if self.variant_code else "",
-            "Blocked": self.blocked,
+            "Blocked": True if self.blocked == True else False,
             "Entry_No": self.entry_no,
         }
 
@@ -114,13 +123,17 @@ class TmsItemIdentifiers(models.Model):
         
         auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
 
+        blocked = False
+        if self.blocked == True:
+            blocked = True
+
         data2 = {
              'Item_No': self.item_no.no,
              'Variant_Code': self.variant_code.code if self.variant_code else "",
              "Barcode_Code": self.barcode_code,
              'Unit_Of_Measure_Code': self.unit_of_measure_code.code,
              "Barcode_Type": self.barcode_type,
-             "Blocked": self.blocked,
+             "Blocked": blocked,
         }
         try:
             response = requests.post(url2, headers=headers, auth=auth, json=data2)
@@ -153,30 +166,43 @@ class TmsItemIdentifiers(models.Model):
     def _onchange_barcode_code(self):
         if self.barcode_code:
             if self.barcode_type == '1' or self.barcode_type == '3':
-                self.barcode_code = self.extract_value_for_key_01(self.split_barcode(self.barcode_code))
+                self.barcode_code = self.extract_value_for_key_01(self.process_barcode(self.barcode_code))
 
-    def split_barcode(self, barcode):
+    def process_barcode(self, barcode):
+        """Process the barcode according to GS1-128 standards."""
         new_array_barcode = []
-        
+
+        gs1_128_length_dict = {
+            '01': 14,
+            '10': 4,
+            '11': 6,
+            '13': 6,
+            '15': 6,
+            '17': 6
+        }
+
+        gs1_128_separator = [10, 23, 21, 11, 13, 15, 17]
+
         def check_gs1_128_1(barcode):
             two_digit_first = barcode[:2]
             return two_digit_first in gs1_128_length_dict
 
         def check_gs1_128_1_1(barcode):
             two_digit_first = barcode[:2]
-            for key, value in gs1_128_length_dict.items():
-                if two_digit_first in key:
-                    barcode_group = barcode[:2+value]
-                    new_array_barcode.append({barcode_group[0:2]: barcode_group[2:]})
-                    return barcode.replace(barcode_group, '')
+            length = gs1_128_length_dict.get(two_digit_first, 0)
+            if length:
+                barcode_group = barcode[:2+length]
+                new_array_barcode.append({barcode_group[:2]: barcode_group[2:]})
+                new_barcode = barcode[length+2:]  # Skip the length of the matched segment
+                return new_barcode
             return barcode
 
         def regex_gs1_128(digit_first, key, barcode):
-            regex = f"(?:{digit_first})(\\w+)(?:{key})"
+            regex = f"{digit_first}(\w+?)(?:{key})"
             matches = re.finditer(regex, barcode)
             for match in matches:
                 return match.group(1)
-            return None
+            return ''
 
         def check_gs1_128_2(barcode):
             two_digit_first = barcode[:2]
@@ -185,30 +211,25 @@ class TmsItemIdentifiers(models.Model):
                 if two_digit_first != str(key2):
                     regex_barcode = regex_gs1_128(two_digit_first, key2, barcode)
                     if regex_barcode:
-                        if regex_save == '' or len(regex_save) > len(regex_barcode):
-                            regex_save = str(two_digit_first) + str(regex_barcode)
-            if regex_save:
-                barcode_group = regex_save
-            else:
+                        if not regex_save or len(regex_barcode) > len(regex_save[2:]):
+                            regex_save = two_digit_first + regex_barcode
+            if not regex_save:
                 barcode_group = barcode
-            new_array_barcode.append({barcode_group[0:2]: barcode_group[2:]})
-            return barcode.replace(barcode_group, '')
+                new_array_barcode.append({barcode_group[:2]: barcode_group[2:]})
+            else:
+                barcode_group = regex_save
+                new_array_barcode.append({barcode_group[:2]: barcode_group[2:]})
 
-        gs1_128_length_dict = {
-            '01': 14,
-            '11': 6,
-            '13': 6,
-            '15': 6,
-        }
-        gs1_128_separator = [10, 23, 21, 11, 13, 15, 17]
-        
+            new_barcode = barcode[len(barcode_group):]
+            return new_barcode
+
         barcode_2 = barcode
         while barcode_2:
             if check_gs1_128_1(barcode_2):
                 barcode_2 = check_gs1_128_1_1(barcode_2)
             else:
                 barcode_2 = check_gs1_128_2(barcode_2)
-                
+
         return new_array_barcode
 
     def extract_value_for_key_01(self, barcode_array):
@@ -216,7 +237,7 @@ class TmsItemIdentifiers(models.Model):
         for item in barcode_array:
             if '01' in item:
                 return item['01']
-        return False  # Return False or keep the original barcode if '01' is not found
+        return self.barcode_code  # Keep the original if '01' is not found
     
     
     # barcode split

@@ -18,6 +18,7 @@
                         <field name="item_description" force_save="1"/>
                         <field name="serial_number" attrs="{'invisible': [('contains_sn','=',False)]}" widget="rt_widget_field_char_qr_cam"/>
                         <field name="lot_number" attrs="{'invisible': [('contains_lot','=',False)]}" widget="rt_widget_field_char_qr_cam"/>
+                        <field name="exp_date" invisible="1"/>
                         <field name="quantity" widget="char" attrs="{'invisible': [('contains_sn','=',True)]}"/>
                         <field name="available_item_ids" invisible="1"/>
                         <field name="item_tracking_code" invisible="1"/>

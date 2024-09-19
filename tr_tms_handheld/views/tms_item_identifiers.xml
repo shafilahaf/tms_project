@@ -13,7 +13,7 @@
               <field name="barcode_type" />
               <field name="barcode_code" widget="rt_widget_field_char_qr_cam" force_save="1"/>
               <field name="blocked" />
-              <field name="entry_no" />
+              <field name="entry_no" invisible="1"/>
             </group>
           </sheet>
         </form>
