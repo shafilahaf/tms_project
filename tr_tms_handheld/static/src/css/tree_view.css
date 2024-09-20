@@ -4,3 +4,7 @@
     max-width: 400px !important;
     white-space: nowrap;
 }
+
+.full-width-field {
+    width: 100% !important;
+}
