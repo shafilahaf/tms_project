@@ -25,6 +25,7 @@ class TmsItemIdentifiers(models.Model):
     barcode_code = fields.Char(string="Barcode Code", store=True)
     blocked = fields.Boolean(strinng="Blocked")
     entry_no = fields.Integer(string="Entry No")
+    item_identifiers_line_ids = fields.One2many('tms.item.identifiers.line', 'header_id', string='Item Identifier Line')
 
     @api.onchange('item_no')
     def _onchange_item_no(self):
@@ -256,3 +257,15 @@ class TmsItemIdentifiers(models.Model):
 
         return ai_data
     # barcode split 2
+
+
+class TMSItemIdentifierLine(models.Model):
+    _name = 'tms.item.identifiers.line'
+    _description = 'TMS Item Identifiers Line'
+
+    header_id = fields.Many2one('tms.item.identifiers', string='Header', ondelete='cascade')
+    sequence = fields.Integer(string="Sequence")
+    gs1_identifier = fields.Char(string="GS1 Identifier")
+    description = fields.Char(string="Description")
+    data_length = fields.Integer(string="Data Length")
+
