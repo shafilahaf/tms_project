@@ -160,84 +160,99 @@ class TmsItemIdentifiers(models.Model):
             error_message = f"JSON encode error: {str(e)} {data2}"
             _logger.error(error_message)
             raise UserError(error_message)
-        
-    # barcode split
+
+    # barcode split 2
     @api.onchange('barcode_code', 'barcode_type')
     def _onchange_barcode_code(self):
-        if self.barcode_code:
-            if self.barcode_type == '1' or self.barcode_type == '3':
-                self.barcode_code = self.extract_value_for_key_01(self.process_barcode(self.barcode_code))
+        """
+        This method is triggered when the barcode_code or barcode_type field is changed.
+        It parses the GS1-128 barcode if the type is GS1-128, and automatically updates the item and variant fields.
+        """
+        if self.barcode_code and self.barcode_type == '1':  
+            try:
+                # barcode parsing method for GS1-128
+                parsed_data = self.parse_gs1_128_barcode(self.barcode_code)
 
-    def process_barcode(self, barcode):
-        """Process the barcode according to GS1-128 standards."""
-        new_array_barcode = []
+                gtin = parsed_data.get('01')
 
-        gs1_128_length_dict = {
-            '01': 14,
-            '10': 4,
-            '11': 6,
-            '13': 6,
-            '15': 6,
-            '17': 6
+                if gtin:
+                    self.barcode_code = gtin
+
+            except Exception as e:
+                raise ValidationError(f"Error parsing GS1-128 barcode: {str(e)}")
+
+    def parse_gs1_128_barcode(self, barcode):
+        """
+        Parses a GS1-128 barcode, handling FNC1 separators and extracting AI data.
+        """
+        # GS1-128 FNC1 separator is ASCII 29 or \x1D
+        fnc1_separator = '\x1D'
+        
+        # Replace FNC1 separator with something easier to handle or remove it
+        barcode = barcode.replace(fnc1_separator, '')
+
+        # Application Identifiers and their expected fixed lengths
+        fixed_length_ai = {
+            '00': 18,  # Serial Shipping Container Code (SSCC)
+            '01': 14,  # Global Trade Item Number (GTIN)
+            '02': 14,  # GTIN of contained trade items
+            '11': 6,   # Production date (YYMMDD)
+            '12': 6,   # Due date (YYMMDD)
+            '13': 6,   # Packaging date (YYMMDD)
+            '15': 6,   # Best before date (YYMMDD)
+            '16': 6,   # Sell by date (YYMMDD)
+            '17': 6,   # Expiration date (YYMMDD)
+            '20': 2,   # Internal product variant
         }
 
-        gs1_128_separator = [10, 23, 21, 11, 13, 15, 17]
+        # Variable-length AI definitions (delimited by FNC1)
+        variable_length_ai = {
+            '10': 20,  # Batch or lot number
+            '21': 20,  # Serial number
+            '22': 20,  # Consumer product variant
+            '235': 28, # Third Party Controlled, Serialised Extension of GTIN (TPX)
+            '240': 30, # Additional product identification assigned by the manufacturer
+            '241': 30, # Customer part number
+            '242': 6,  # Made-to-Order variation number
+            '243': 20, # Packaging component number
+            '250': 30, # Secondary serial number
+            '251': 30, # Reference to source entity
+            '253': 30, # Global Document Type Identifier (GDTI) - variable format
+            '254': 20, # GLN extension component
+            '255': 25, # Global Coupon Number (GCN) - variable format
+            '30': 8,   # Variable count of items (variable measure trade item)
+        }
 
-        def check_gs1_128_1(barcode):
-            two_digit_first = barcode[:2]
-            return two_digit_first in gs1_128_length_dict
+        ai_data = {}
+        index = 0
 
-        def check_gs1_128_1_1(barcode):
-            two_digit_first = barcode[:2]
-            length = gs1_128_length_dict.get(two_digit_first, 0)
-            if length:
-                barcode_group = barcode[:2+length]
-                new_array_barcode.append({barcode_group[:2]: barcode_group[2:]})
-                new_barcode = barcode[length+2:]  # Skip the length of the matched segment
-                return new_barcode
-            return barcode
-
-        def regex_gs1_128(digit_first, key, barcode):
-            regex = f"{digit_first}(\w+?)(?:{key})"
-            matches = re.finditer(regex, barcode)
-            for match in matches:
-                return match.group(1)
-            return ''
-
-        def check_gs1_128_2(barcode):
-            two_digit_first = barcode[:2]
-            regex_save = ''
-            for key2 in gs1_128_separator:
-                if two_digit_first != str(key2):
-                    regex_barcode = regex_gs1_128(two_digit_first, key2, barcode)
-                    if regex_barcode:
-                        if not regex_save or len(regex_barcode) > len(regex_save[2:]):
-                            regex_save = two_digit_first + regex_barcode
-            if not regex_save:
-                barcode_group = barcode
-                new_array_barcode.append({barcode_group[:2]: barcode_group[2:]})
+        while index < len(barcode):
+            ai = barcode[index:index + 2]
+            if ai in ['253', '255']:  # Handle the 3-digit AIs
+                ai = barcode[index:index + 3]
+                index += 3
             else:
-                barcode_group = regex_save
-                new_array_barcode.append({barcode_group[:2]: barcode_group[2:]})
+                index += 2
 
-            new_barcode = barcode[len(barcode_group):]
-            return new_barcode
+            if ai in fixed_length_ai:
+                length = fixed_length_ai[ai]
+                value = barcode[index:index + length]
+                index += length
+                ai_data[ai] = value
+            elif ai in variable_length_ai:
+                max_length = variable_length_ai[ai]
 
-        barcode_2 = barcode
-        while barcode_2:
-            if check_gs1_128_1(barcode_2):
-                barcode_2 = check_gs1_128_1_1(barcode_2)
+                fnc1_pos = barcode.find(fnc1_separator, index)
+                if fnc1_pos == -1:
+                    value = barcode[index:index + max_length]
+                    index += len(value)
+                else:
+                    value = barcode[index:fnc1_pos]
+                    index = fnc1_pos + 1
+
+                ai_data[ai] = value
             else:
-                barcode_2 = check_gs1_128_2(barcode_2)
+                raise ValidationError(f"Unknown Application Identifier (AI): {ai}")
 
-        return new_array_barcode
-
-    def extract_value_for_key_01(self, barcode_array):
-        """Extract the value corresponding to key '01'."""
-        for item in barcode_array:
-            if '01' in item:
-                return item['01']
-        return self.barcode_code  # Keep the original if '01' is not found
-    
-    
-    # barcode split
+        return ai_data
+    # barcode split 2
