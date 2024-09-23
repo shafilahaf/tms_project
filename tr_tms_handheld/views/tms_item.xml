@@ -68,7 +68,7 @@
         <field name="arch" type="xml">
             <tree string="TMS Items">
                 <!-- Adjust as per requirement change the value of style-->
-                <field name="no" t-attf-class="full-width-field"/>
+                <field name="no" class="full-width-field"/> <!-- t-attf-class="full-width-field"-->
                 <field name="description"/>
                 <field name="vendor_no"/>
                 <field name="manufacturer_code"/>
