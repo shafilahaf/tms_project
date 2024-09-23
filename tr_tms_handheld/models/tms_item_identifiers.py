@@ -27,6 +27,10 @@ class TmsItemIdentifiers(models.Model):
     entry_no = fields.Integer(string="Entry No")
     item_identifiers_line_ids = fields.One2many('tms.item.identifiers.line', 'header_id', string='Item Identifier Line')
 
+    # SH
+    sh_product_barcode_mobile = fields.Char(string="Mobile Barcode")    
+    # SH
+
     @api.onchange('item_no')
     def _onchange_item_no(self):
         if self.item_no:

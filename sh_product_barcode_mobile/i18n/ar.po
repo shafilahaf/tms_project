@@ -1,0 +1,300 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* sh_product_barcode_mobile
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 14.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-10-21 12:22+0000\n"
+"PO-Revision-Date: 2020-10-21 12:22+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_wizard_form
+msgid ""
+"<i class=\"fa fa-barcode\"/>\n"
+"                                Start"
+msgstr ""
+"<i class=\"fa fa-barcode\"/>\n"
+"                                بداية"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_wizard_form
+msgid ""
+"<i class=\"fa fa-barcode\"/>\n"
+"                                Stop"
+msgstr ""
+"<i class=\"fa fa-barcode\"/>\n"
+"                                قف"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_wizard_form
+msgid ""
+"<span style=\"display: block;\">Result:</span>\n"
+"                            <code id=\"js_id_sh_product_barcode_mobile_result\"/>"
+msgstr ""
+"<span style=\"display: block;\">نتيجة:</span>\n"
+"                            <code id=\"js_id_sh_product_barcode_mobile_result\"/>"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_wizard_form
+msgid "<strong style=\"align-self: center;\" class=\"col-3\">Camera</strong>"
+msgstr "<strong style=\"align-self: center;\" class=\"col-3\">الة تصوير</strong>"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields.selection,name:sh_product_barcode_mobile.selection__res_company__sh_product_barcode_mobile_type__all
+msgid "All"
+msgstr "الكل"
+
+#. module: sh_product_barcode_mobile
+#: model:res.groups,name:sh_product_barcode_mobile.sh_product_barcode_mobile_group
+msgid "Allow Product Information Scanning"
+msgstr "السماح معلومات المنتج الضوئي"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields.selection,name:sh_product_barcode_mobile.selection__res_company__sh_product_barcode_mobile_type__barcode
+msgid "Barcode"
+msgstr "الرمز الشريطي"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model,name:sh_product_barcode_mobile.model_res_company
+msgid "Companies"
+msgstr "الشركات"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__company_id
+msgid "Company"
+msgstr "شركة"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model,name:sh_product_barcode_mobile.model_res_config_settings
+msgid "Config Settings"
+msgstr "إعدادات التكوين"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Continuous scanning or not"
+msgstr "المسح المستمر أو لا"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__sh_product_bm_is_cont_scan
+msgid "Continuously Scan?"
+msgstr "المسح الضوئي بشكل مستمر؟"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_bm_is_cont_scan
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_bm_is_cont_scan
+msgid "Continuously Scan? (Product)"
+msgstr "المسح الضوئي بشكل مستمر؟ (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__create_uid
+msgid "Created by"
+msgstr "انشأ من قبل"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__create_date
+msgid "Created on"
+msgstr "تم إنشاؤها على"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__display_name
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__display_name
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__display_name
+msgid "Display Name"
+msgstr "اسم العرض"
+
+#. module: sh_product_barcode_mobile
+#: code:addons/sh_product_barcode_mobile/wizard/sh_product_barcode_mobile_wizard.py:0
+#, python-format
+msgid "Failed"
+msgstr "فشل"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model,name:sh_product_barcode_mobile.model_sh_product_barcode_mobile_wizard
+msgid "Get Price Mobile Barcode Scanner"
+msgstr "الحصول على سعر الجوال الباركود"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__id
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__id
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__id
+msgid "ID"
+msgstr "هوية شخصية"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields.selection,name:sh_product_barcode_mobile.selection__res_company__sh_product_barcode_mobile_type__int_ref
+msgid "Internal Reference"
+msgstr "المرجع الداخلي"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company____last_update
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings____last_update
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard____last_update
+msgid "Last Modified on"
+msgstr "آخر تعديل ل"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__write_uid
+msgid "Last Updated by"
+msgstr "آخر تحديث بواسطة"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__write_date
+msgid "Last Updated on"
+msgstr "آخر تحديث:"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__post_msg
+msgid "Message"
+msgstr "رسالة"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,help:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__post_msg
+msgid "Message displayed after having scan product"
+msgstr "الرسالة المعروضة بعد أن المنتج المسح الضوئي"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__sh_product_barcode_mobile
+msgid "Mobile Barcode"
+msgstr "موبايل الباركود"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_sh_product_barcode_mobile_wizard__name
+msgid "Name"
+msgstr "اسم"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_bm_is_notify_on_fail
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_bm_is_notify_on_fail
+msgid "Notification On Product Failed? (Product)"
+msgstr "فشل الإعلام على المنتج؟ (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_bm_is_notify_on_success
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_bm_is_notify_on_success
+msgid "Notification On Product Succeed? (Product)"
+msgstr "الإعلام على المنتج تنجح؟ (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Notification on Failed"
+msgstr "الإعلام على فشل"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Notification on Succeed"
+msgstr "الإعلام على النجاح"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Play Sound On Product Failed"
+msgstr "لعب فشل الصوت في المنتج"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_bm_is_sound_on_fail
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_bm_is_sound_on_fail
+msgid "Play Sound On Product Failed? (Product)"
+msgstr "تلعب فشل الصوت في المنتج؟ (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Play Sound On Product Succeed"
+msgstr "لعب الصوت في المنتج تنجح"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_bm_is_sound_on_success
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_bm_is_sound_on_success
+msgid "Play Sound On Product Succeed? (Product)"
+msgstr "لعب الصوت في المنتج تنجح؟ (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Product Mobile Barcode Scanner"
+msgstr "المنتج المحمول ماسح الباركود"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_barcode_mobile_type
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_barcode_mobile_type
+msgid "Product Scan Options In Mobile (Product)"
+msgstr "المنتج خيارات المسح الضوئي في موبايل (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.actions.act_window,name:sh_product_barcode_mobile.sh_product_barcode_mobile_wizard_action
+#: model:ir.ui.menu,name:sh_product_barcode_mobile.sh_product_barcode_mobile_main
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_wizard_form
+msgid "Product Scanning"
+msgstr "الضوئي المنتج"
+
+#. module: sh_product_barcode_mobile
+#: code:addons/sh_product_barcode_mobile/wizard/sh_product_barcode_mobile_wizard.py:0
+#, python-format
+msgid "Product: %s"
+msgstr "منتجات"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields.selection,name:sh_product_barcode_mobile.selection__res_company__sh_product_barcode_mobile_type__sh_qr_code
+msgid "QR code"
+msgstr "رمز الاستجابة السريعة"
+
+#. module: sh_product_barcode_mobile
+#: code:addons/sh_product_barcode_mobile/wizard/sh_product_barcode_mobile_wizard.py:0
+#, python-format
+msgid "Scanned Internal Reference/Barcode not exist in any product!"
+msgstr "الممسوحة ضوئيا المرجعي الداخلية / الباركود تكن موجودة في أي منتج!"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Show Forecast Quantity In Product Information"
+msgstr "مشاهدة توقعات الكمية في معلومات المنتج"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_bm_is_virtual_available
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_bm_is_virtual_available
+msgid "Show Forecast Quantity? (Product)"
+msgstr "تظهر توقعات الكمية؟ (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Show Internal Reference In Product Information"
+msgstr "عرض المرجعي الداخلية في معلومات المنتج"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_bm_is_default_code
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_bm_is_default_code
+msgid "Show Internal Reference? (Product)"
+msgstr "عرض المرجعي الداخلي؟ (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Show Quantity On Hand In Product Information"
+msgstr "تظهر الكمية في اليد في معلومات المنتج"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_bm_is_qty_available
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_bm_is_qty_available
+msgid "Show Quantity On Hand? (Product)"
+msgstr "تظهر الكمية في اليد؟ (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: model_terms:ir.ui.view,arch_db:sh_product_barcode_mobile.sh_product_barcode_mobile_res_config_settings_form
+msgid "Show Sale Price In Product Information"
+msgstr "عرض للبيع السعر في معلومات المنتج"
+
+#. module: sh_product_barcode_mobile
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_company__sh_product_bm_is_lst_price
+#: model:ir.model.fields,field_description:sh_product_barcode_mobile.field_res_config_settings__sh_product_bm_is_lst_price
+msgid "Show Sale Price? (Product)"
+msgstr "عرض سعر البيع؟ (المنتج)"
+
+#. module: sh_product_barcode_mobile
+#: code:addons/sh_product_barcode_mobile/wizard/sh_product_barcode_mobile_wizard.py:0
+#, python-format
+msgid "Succeed"
+msgstr "ينجح"

@@ -11,7 +11,36 @@
               <field name="variant_code"/>
               <field name="unit_of_measure_code"/>
               <field name="barcode_type" />
-              <field name="barcode_code" widget="rt_widget_field_char_qr_cam" force_save="1"/>
+              <!-- <field name="barcode_code" widget="rt_widget_field_char_qr_cam" force_save="1"/> -->
+              <field name="sh_product_barcode_mobile" />
+              <script type="text/javascript" src="/sh_product_barcode_mobile/static/src/js/sh_product_barcode_mobile.js"></script>
+
+                    <section class="oe_edit_only">
+                        <div>
+                            <a role="button" style="color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-primary" id="js_id_sh_product_barcode_mobile_start_btn">
+                                <i class="fa fa-barcode"></i>
+                                Start
+                            </a>
+                            <a role="button" style="display: none; color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-danger" id="js_id_sh_product_barcode_mobile_reset_btn">
+                                <i class="fa fa-barcode"></i>
+                                Stop
+                            </a>
+                        </div>
+
+                        <div id="js_id_sh_product_barcode_mobile_vid_div" style="display: none;">
+                            <group style="margin-bottom: 10px;">
+                                <div class="form-group row" style="margin-bottom: 0px;">
+                                    <strong style="align-self: center;" class="col-3">Camera</strong>
+                                    <select class="col-8 form-control" id="js_id_sh_product_barcode_mobile_cam_select"> </select>
+                                </div>
+                            </group>
+
+                            <video id="video" class="cls_sh_all_in_one_mbs_video_tag" width="600" height="400" style="border: 1px solid gray;"></video>
+
+                            <span style="display: block;">Result:</span>
+                            <code id="js_id_sh_product_barcode_mobile_result"></code>
+                        </div>
+                    </section>
               <field name="blocked" />
               <field name="entry_no" invisible="1"/>
             </group>
