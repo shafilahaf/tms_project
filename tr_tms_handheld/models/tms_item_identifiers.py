@@ -71,7 +71,7 @@ class TmsItemIdentifiers(models.Model):
         try:
             auth = HttpNtlmAuth(username, password)
             response = requests.delete(url, headers=headers, auth=auth)
-            # response.raise_for_status()  # Raise an HTTPError for bad responses
+            # # # response.raise_for_status()  # Raise an HTTPError for bad responses
             _logger.debug(f"Response Status Code: {response.status_code}")
             _logger.debug(f"Response Headers: {response.headers}")
             _logger.debug(f"Response Content: {response.content}")
@@ -100,7 +100,7 @@ class TmsItemIdentifiers(models.Model):
             try:
                 auth = HttpNtlmAuth(username, password)
                 response = requests.patch(url, headers=headers, auth=auth, json=data)
-                response.raise_for_status()  # Raise an HTTPError for bad responses
+                # # response.raise_for_status()  # Raise an HTTPError for bad responses
                 _logger.debug(f"Response Status Code: {response.status_code}")
                 _logger.debug(f"Response Headers: {response.headers}")
                 _logger.debug(f"Response Content: {response.content}")
@@ -127,7 +127,7 @@ class TmsItemIdentifiers(models.Model):
         try:
             auth = HttpNtlmAuth(username, password)
             response = requests.get(url, headers=headers, auth=auth)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
+            # # response.raise_for_status()  # Raise an HTTPError for bad responses
             
             # Retrieve etag from response headers
             etag = response.headers.get('ETag')
@@ -170,14 +170,13 @@ class TmsItemIdentifiers(models.Model):
             "Variant_Code": self.variant_code.code if self.variant_code else "",
             "Blocked": True if self.blocked == True else False,
             "Entry_No": self.entry_no,
-            "Need_Sent_to_WMS": False,
-            "Blocked": blocked
+            "Need_Sent_to_WMS": False
         }
 
         try:
             auth = HttpNtlmAuth(username, password)
             response = requests.patch(url, headers=headers, auth=auth, json=data)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
+            # # response.raise_for_status()  # Raise an HTTPError for bad responses
             _logger.debug(f"Response Status Code: {response.status_code}")
             _logger.debug(f"Response Headers: {response.headers}")
             _logger.debug(f"Response Content: {response.content}")
@@ -209,12 +208,11 @@ class TmsItemIdentifiers(models.Model):
              "Barcode_Code": self.sh_product_barcode_mobile,
              'Unit_Of_Measure_Code': self.unit_of_measure_code.code,
              "Barcode_Type": self.barcode_type,
-             "Blocked": blocked,
              "Need_Sent_to_WMS": False,
         }
         try:
             response = requests.post(url2, headers=headers, auth=auth, json=data2)
-            response.raise_for_status()
+            # # response.raise_for_status()
 
             response_json = response.json()
             entry_no = response_json.get("Entry_No")
@@ -340,28 +338,12 @@ class TmsItemIdentifiers(models.Model):
 
             auth = HttpNtlmAuth(username, password)
             response = requests.get(url, headers=headers, auth=auth)
-            # response.raise_for_status()  # Raise an HTTPError for bad responses
-            
+
             if response.status_code == 200:
                 etag = response.headers.get('ETag')
                 self.update_item_line_identifier(etag, self.entry_no, line.sequence, line.gs1_identifier, line.description, line.data_length, line.blocked)
             else:
                 self.post_item_line_identifiers(line.sequence, line.gs1_identifier, line.description, line.data_length)
-            
-            # try:
-            #     auth = HttpNtlmAuth(username, password)
-            #     response = requests.get(url, headers=headers, auth=auth)
-            #     response.raise_for_status()  # Raise an HTTPError for bad responses
-                
-            #     # Retrieve etag from response headers
-            #     etag = response.headers.get('ETag')
-            #     # if not etag:
-                   
-            #     # else:
-            #     self.update_item_line_identifier(etag, self.entry_no,line.sequence, line.gs1_identifier, line.description, line.data_length)
-            # except requests.exceptions.RequestException as e:
-            #     # self.post_item_line_identifiers(line.sequence, line.gs1_identifier, line.description, line.data_length)
-            #     raise ValidationError(e)
 
     def post_item_line_identifiers(self, sequence, gs1_iden, description, length):
         current_company = self.env.user.company_id
@@ -383,7 +365,7 @@ class TmsItemIdentifiers(models.Model):
         try:
 
             response = requests.post(url2, headers=headers, auth=auth, json=data2)
-            response.raise_for_status()
+            # response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             try:
                 root = ET.fromstring(response.text)
@@ -408,14 +390,14 @@ class TmsItemIdentifiers(models.Model):
             'GS1_Identifier': gs1_ident,
             'Description': description,
             'Data_Length': length,
-            'Need_Sent_to_WMS': False,
-            'Blocked': blocked
+            'Need_Sent_to_WMS': False
+
         }
 
         try:
             auth = HttpNtlmAuth(username, password)
             response = requests.patch(url, headers=headers, auth=auth, json=data)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
+            # # response.raise_for_status()  # Raise an HTTPError for bad responses
             _logger.debug(f"Response Status Code: {response.status_code}")
             _logger.debug(f"Response Headers: {response.headers}")
             _logger.debug(f"Response Content: {response.content}")
@@ -442,6 +424,16 @@ class TMSItemIdentifierLine(models.Model):
     need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")
     blocked = fields.Boolean(string="Blocked")
 
+    @api.onchange('header_id')
+    def _onchange_header_id(self):
+        if self.header_id:
+            # Get the next sequence number for the selected header
+            existing_lines = self.search([('header_id', '=', self.header_id.id)], order="sequence desc", limit=1)
+            if existing_lines:
+                self.sequence = existing_lines.sequence + 1
+            else:
+                self.sequence = 1
+
     def check_line_blocked(self):
         for record in self:
             entry_no = record.header_id.entry_no
@@ -462,7 +454,7 @@ class TMSItemIdentifierLine(models.Model):
             try:
                 auth = HttpNtlmAuth(username, password)
                 response = requests.patch(url, headers=headers, auth=auth, json=data)
-                response.raise_for_status()  # Raise an HTTPError for bad responses
+                # # response.raise_for_status()  # Raise an HTTPError for bad responses
                 _logger.debug(f"Response Status Code: {response.status_code}")
                 _logger.debug(f"Response Headers: {response.headers}")
                 _logger.debug(f"Response Content: {response.content}")
@@ -492,7 +484,7 @@ class TMSItemIdentifierLine(models.Model):
         try:
             auth = HttpNtlmAuth(username, password)
             response = requests.delete(url, headers=headers, auth=auth)
-            # response.raise_for_status()  # Raise an HTTPError for bad responses
+            # # # response.raise_for_status()  # Raise an HTTPError for bad responses
             _logger.debug(f"Response Status Code: {response.status_code}")
             _logger.debug(f"Response Headers: {response.headers}")
             _logger.debug(f"Response Content: {response.content}")
@@ -516,7 +508,7 @@ class TMSItemIdentifierLine(models.Model):
         try:
             auth = HttpNtlmAuth(username, password)
             response = requests.get(url, headers=headers, auth=auth)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
+            # # response.raise_for_status()  # Raise an HTTPError for bad responses
             
             # Retrieve etag from response headers
             etag = response.headers.get('ETag')
