@@ -26,9 +26,10 @@ class TmsItemIdentifiers(models.Model):
     blocked = fields.Boolean(strinng="Blocked")
     entry_no = fields.Integer(string="Entry No")
     item_identifiers_line_ids = fields.One2many('tms.item.identifiers.line', 'header_id', string='Item Identifier Line')
+    need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")
 
     # SH
-    sh_product_barcode_mobile = fields.Char(string="Mobile Barcode")    
+    sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)    
     # SH
 
     @api.onchange('item_no')
@@ -44,6 +45,7 @@ class TmsItemIdentifiers(models.Model):
     def create(self, vals):
         record = super(TmsItemIdentifiers, self).create(vals)
         record.create_item_identifiers()
+        record.create_item_line_identifiers()
         
         return record
 
@@ -97,10 +99,11 @@ class TmsItemIdentifiers(models.Model):
 
         data = {
             "Barcode_Type": self.barcode_type,
-            "Barcode_Code": self.barcode_code,
+            "Barcode_Code": self.sh_product_barcode_mobile,
             "Variant_Code": self.variant_code.code if self.variant_code else "",
             "Blocked": True if self.blocked == True else False,
             "Entry_No": self.entry_no,
+            "Need_Sent_to_WMS": "false",
         }
 
         try:
@@ -135,10 +138,11 @@ class TmsItemIdentifiers(models.Model):
         data2 = {
              'Item_No': self.item_no.no,
              'Variant_Code': self.variant_code.code if self.variant_code else "",
-             "Barcode_Code": self.barcode_code,
+             "Barcode_Code": self.sh_product_barcode_mobile,
              'Unit_Of_Measure_Code': self.unit_of_measure_code.code,
              "Barcode_Type": self.barcode_type,
              "Blocked": blocked,
+             "Need_Sent_to_WMS": "false",
         }
         try:
             response = requests.post(url2, headers=headers, auth=auth, json=data2)
@@ -167,21 +171,21 @@ class TmsItemIdentifiers(models.Model):
             raise UserError(error_message)
 
     # barcode split 2
-    @api.onchange('barcode_code', 'barcode_type')
-    def _onchange_barcode_code(self):
+    @api.onchange('sh_product_barcode_mobile', 'barcode_type')
+    def _onchange_sh_product_barcode_mobile(self):
         """
         This method is triggered when the barcode_code or barcode_type field is changed.
         It parses the GS1-128 barcode if the type is GS1-128, and automatically updates the item and variant fields.
         """
-        if self.barcode_code and self.barcode_type == '1':  
+        if self.sh_product_barcode_mobile and self.barcode_type == '1':  
             try:
                 # barcode parsing method for GS1-128
-                parsed_data = self.parse_gs1_128_barcode(self.barcode_code)
+                parsed_data = self.parse_gs1_128_barcode(self.sh_product_barcode_mobile)
 
                 gtin = parsed_data.get('01')
 
                 if gtin:
-                    self.barcode_code = gtin
+                    self.sh_product_barcode_mobile = gtin
 
             except Exception as e:
                 raise ValidationError(f"Error parsing GS1-128 barcode: {str(e)}")
@@ -262,6 +266,42 @@ class TmsItemIdentifiers(models.Model):
         return ai_data
     # barcode split 2
 
+    # Line
+    def create_item_line_identifiers(self):
+        current_company = self.env.user.company_id
+        url2 = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail?$format=json'
+        headers = {'Content-Type': 'application/json'}
+
+        username = current_company.username_api
+        password = current_company.password_api
+        
+        auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
+
+        for line in self.item_identifiers_line_ids:
+            data2 = {
+                "Source_Entry_No": self.entry_no,
+                "Sequence": line.sequence,
+                "GS1_Identifier": line.gs1_identifier,
+                "Description": line.description,
+                "Data_Length": line.data_length,
+                "Need_Sent_to_WMS": "false",
+            }
+            try:
+                response = requests.post(url2, headers=headers, auth=auth, json=data2)
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                try:
+                    root = ET.fromstring(response.text)
+                    error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
+                except ET.ParseError:
+                    error_message = response.text
+                _logger.error(f"HTTP error occurred while creating line identifiers: {error_message}")
+                raise UserError(error_message)
+            except requests.exceptions.RequestException as e:
+                _logger.error(f"HTTP error occurred: {str(e)}")
+                raise UserError(f"HTTP error occurred: {str(e)}")
+    # Line
+
 
 class TMSItemIdentifierLine(models.Model):
     _name = 'tms.item.identifiers.line'
@@ -272,4 +312,4 @@ class TMSItemIdentifierLine(models.Model):
     gs1_identifier = fields.Char(string="GS1 Identifier")
     description = fields.Char(string="Description")
     data_length = fields.Integer(string="Data Length")
-
+    need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")

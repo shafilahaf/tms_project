@@ -54,7 +54,8 @@ class TmsItemIdentifiers(http.Controller):
             })
             return {
                 'message': 'Item Identifiers created successfully',
-                'response': 200
+                'response': 200,
+                'entry_no': tms_item_identifiers.id
             }
         except Exception as e:
             _logger.error("Error creating Item Identifiers: %s", e)
@@ -69,16 +70,8 @@ class TmsItemIdentifiers(http.Controller):
         Create Item Identifier Lines for a specific Item Identifier based on Entry_No.
         """
         data = request.jsonrequest
-        entry_no = data.get('Entry_No')
-        item_identifier_lines = data.get('Item_Identifier_Lines')
+        entry_no = data.get('Source_Entry_No')
 
-        if not item_identifier_lines or not entry_no:
-            return {
-                'error': 'Entry No and lines are required',
-                'response': 400
-            }
-
-        # Find the Item Identifier by Entry_No
         item_identifier = request.env['tms.item.identifiers'].sudo().search([('entry_no', '=', entry_no)], limit=1)
 
         if not item_identifier.exists():
@@ -87,34 +80,33 @@ class TmsItemIdentifiers(http.Controller):
                 'response': 404
             }
 
-        for line in item_identifier_lines:
-            sequence = line.get('Sequence')
-            gs1_identifier = line.get('GS1_Identifier')
-            description = line.get('Description')
-            data_length = line.get('Data_Length')
+        # for line in item_identifier_lines:
+        sequence = data.get('Sequence')
+        entry_no = data.get('Source_Entry_No')
+        gs1_identifier = data.get('GS1_Identifier')
+        description = data.get('Description')
+        data_length = data.get('Data_Length')
 
-            # Check if the line with the given sequence already exists
-            line_record = request.env['tms.item.identifiers.line'].sudo().search([
-                ('header_id', '=', item_identifier.id),
-                ('sequence', '=', sequence)
-            ], limit=1)
+        line_record = request.env['tms.item.identifiers.line'].sudo().search([
+            ('header_id', '=', item_identifier.id),
+            ('header_id.entry_no', '=', entry_no),
+            ('sequence', '=', sequence)
+        ], limit=1)
 
-            if line_record:
-                # Update existing line
-                line_record.write({
-                    'gs1_identifier': gs1_identifier,
-                    'description': description,
-                    'data_length': data_length
-                })
-            else:
-                # Create new line if it doesn't exist
-                request.env['tms.item.identifiers.line'].sudo().create({
-                    'header_id': item_identifier.id,
-                    'sequence': sequence,
-                    'gs1_identifier': gs1_identifier,
-                    'description': description,
-                    'data_length': data_length
-                })
+        if line_record:
+            line_record.write({
+                'gs1_identifier': gs1_identifier,
+                'description': description,
+                'data_length': data_length
+            })
+        else:
+            request.env['tms.item.identifiers.line'].sudo().create({
+                'header_id': item_identifier.id,
+                'sequence': sequence,
+                'gs1_identifier': gs1_identifier,
+                'description': description,
+                'data_length': data_length,
+            })
 
         return {
             'message': 'Item Identifier Lines processed successfully',
