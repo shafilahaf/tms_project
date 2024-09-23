@@ -5,6 +5,9 @@
       <field name="model">tms.item.identifiers</field>
       <field name="arch" type="xml">
         <form string="TMS Item Identifiers">
+          <header>
+            <!-- <button name="check_blocked" string="Block Item Barcode" type="object" class="oe_highlight" /> -->
+          </header>
           <sheet>
             <group>
               <field name="item_no"/>
@@ -37,7 +40,7 @@
                         <code id="js_id_sh_product_barcode_mobile_result"></code>
                     </div>
                 </section>
-              <field name="blocked" />
+              <!-- <field name="blocked" /> -->
               <field name="entry_no" invisible="1"/>
             </group>
             <notebook>
@@ -48,6 +51,8 @@
                     <field name="gs1_identifier" />
                     <field name="data_length" />
                     <field name="description" />
+                    <!-- <field name="blocked" /> -->
+                    <!-- <button name="check_line_blocked" string="Block" type="object" class="oe_highlight" /> -->
                   </tree>
                   <form>
                     <group>
@@ -55,6 +60,8 @@
                       <field name="gs1_identifier" />
                       <field name="data_length" />
                       <field name="description" />
+                      <!-- <field name="blocked" /> -->
+                      <!-- <button name="check_line_blocked" string="Block" type="object" class="oe_highlight" /> -->
                     </group>
                   </form>
                 </field>
@@ -74,7 +81,7 @@
               <field name="variant_code"/>
               <field name="unit_of_measure_code"/>
               <field name="barcode_type" />
-              <field name="barcode_code" />
+              <field name="sh_product_barcode_mobile" />
               <field name="blocked" />
         </tree>
       </field>

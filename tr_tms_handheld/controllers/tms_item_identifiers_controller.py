@@ -22,47 +22,51 @@ class TmsItemIdentifiers(http.Controller):
         tms_item_identifiers = request.env['tms.item.identifiers'].sudo()
         tms_uom_model = request.env['tms.unit.of.measures'].sudo()
         item = request.env['tms.item'].sudo()
-        
-        uom_record = tms_uom_model.search([('code', '=', unit_of_measure_code)], limit=1)
-        item_record = item.search([('no', '=', item_no)], limit=1)
 
-        if tms_item_identifiers.search([('item_no', '=', item_no), ('variant_code', '=', variant_code)]):
-            item_identifier = tms_item_identifiers.search([('item_no', '=', item_no), ('variant_code', '=', variant_code)])
-            item_identifier.write({
-                'item_no': item_record.id,
-                'variant_code': variant_code,
-                'unit_of_measure_code': uom_record.id,
-                'barcode_type': barcode_type,
-                'barcode_code': barcode_code,
-                'blocked': blocked,
-                'entry_no': entry_no,
-            })
-            return {
-                'message': 'Item Identifiers updated successfully',
-                'response': 200
-            }
+        if blocked:
+            if tms_item_identifiers.search([('item_no', '=', item_no), ('variant_code', '=', variant_code)]):
+                tms_item_identifiers.sudo().unlink()
+        else:
+            uom_record = tms_uom_model.search([('code', '=', unit_of_measure_code)], limit=1)
+            item_record = item.search([('no', '=', item_no)], limit=1)
 
-        try:
-            tms_item_identifiers.create({
-                'item_no': item_record.id,
-                'variant_code': variant_code,
-                'unit_of_measure_code': uom_record.id,
-                'barcode_type': barcode_type,
-                'barcode_code': barcode_code,
-                'blocked': blocked,
-                'entry_no': entry_no,
-            })
-            return {
-                'message': 'Item Identifiers created successfully',
-                'response': 200,
-                'entry_no': tms_item_identifiers.id
-            }
-        except Exception as e:
-            _logger.error("Error creating Item Identifiers: %s", e)
-            return {
-                'error': str(e),
-                'response': 500
-            }
+            if tms_item_identifiers.search([('item_no', '=', item_no), ('variant_code', '=', variant_code)]):
+                item_identifier = tms_item_identifiers.search([('item_no', '=', item_no), ('variant_code', '=', variant_code)])
+                item_identifier.write({
+                    'item_no': item_record.id,
+                    'variant_code': variant_code,
+                    'unit_of_measure_code': uom_record.id,
+                    'barcode_type': barcode_type,
+                    'barcode_code': barcode_code,
+                    'blocked': blocked,
+                    'entry_no': entry_no,
+                })
+                return {
+                    'message': 'Item Identifiers updated successfully',
+                    'response': 200
+                }
+
+            try:
+                tms_item_identifiers.create({
+                    'item_no': item_record.id,
+                    'variant_code': variant_code,
+                    'unit_of_measure_code': uom_record.id,
+                    'barcode_type': barcode_type,
+                    'barcode_code': barcode_code,
+                    'blocked': blocked,
+                    'entry_no': entry_no,
+                })
+                return {
+                    'message': 'Item Identifiers created successfully',
+                    'response': 200,
+                    'entry_no': tms_item_identifiers.id
+                }
+            except Exception as e:
+                _logger.error("Error creating Item Identifiers: %s", e)
+                return {
+                    'error': str(e),
+                    'response': 500
+                }
 
     @http.route('/api/tms_item_identifier_lines', auth='none', methods=['POST'], csrf=False, type='json')
     def create_item_identifier_lines(self, **kw):
@@ -86,6 +90,7 @@ class TmsItemIdentifiers(http.Controller):
         gs1_identifier = data.get('GS1_Identifier')
         description = data.get('Description')
         data_length = data.get('Data_Length')
+        blocked = data.get('Blocked')
 
         line_record = request.env['tms.item.identifiers.line'].sudo().search([
             ('header_id', '=', item_identifier.id),
@@ -93,22 +98,29 @@ class TmsItemIdentifiers(http.Controller):
             ('sequence', '=', sequence)
         ], limit=1)
 
-        if line_record:
-            line_record.write({
-                'gs1_identifier': gs1_identifier,
-                'description': description,
-                'data_length': data_length
-            })
+        if blocked:
+            if line_record:
+                line_record.sudo().unlink()
         else:
-            request.env['tms.item.identifiers.line'].sudo().create({
-                'header_id': item_identifier.id,
-                'sequence': sequence,
-                'gs1_identifier': gs1_identifier,
-                'description': description,
-                'data_length': data_length,
-            })
 
-        return {
-            'message': 'Item Identifier Lines processed successfully',
-            'response': 200
-        }
+            if line_record:
+                line_record.write({
+                    'gs1_identifier': gs1_identifier,
+                    'description': description,
+                    'data_length': data_length,
+                    'blocked': blocked,
+                })
+            else:
+                request.env['tms.item.identifiers.line'].sudo().create({
+                    'header_id': item_identifier.id,
+                    'sequence': sequence,
+                    'gs1_identifier': gs1_identifier,
+                    'description': description,
+                    'data_length': data_length,
+                    'blocked': blocked,
+                })
+
+            return {
+                'message': 'Item Identifier Lines processed successfully',
+                'response': 200
+            }

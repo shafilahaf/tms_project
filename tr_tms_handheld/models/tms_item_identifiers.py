@@ -45,7 +45,6 @@ class TmsItemIdentifiers(models.Model):
     def create(self, vals):
         record = super(TmsItemIdentifiers, self).create(vals)
         record.create_item_identifiers()
-        record.create_item_line_identifiers()
         
         return record
 
@@ -53,10 +52,68 @@ class TmsItemIdentifiers(models.Model):
         res = super(TmsItemIdentifiers, self).write(vals)
         
         for record in self:
-            record.update_item_identifier(record.entry_no)
+           record.create_item_identifiers()
 
         return res
     
+    def unlink(self):
+        self.delete_item_identifier(self.retrieve_etag(self.entry_no), self.entry_no)
+        # Proceed with the standard unlink process
+        return super(TmsItemIdentifiers, self).unlink()
+
+    def delete_item_identifier(self, etag, entryno):
+        current_company = self.env.user.company_id
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Entry_No={int(entryno)})?$format=json'
+        headers = {'Content-Type': 'application/json', 'If-Match': etag}
+
+        username = current_company.username_api
+        password = current_company.password_api
+        try:
+            auth = HttpNtlmAuth(username, password)
+            response = requests.delete(url, headers=headers, auth=auth)
+            # response.raise_for_status()  # Raise an HTTPError for bad responses
+            _logger.debug(f"Response Status Code: {response.status_code}")
+            _logger.debug(f"Response Headers: {response.headers}")
+            _logger.debug(f"Response Content: {response.content}")
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"HTTP error occurred: {e}")
+            raise UserError(f"HTTP error occurred: {e}")
+        except ValueError as e:
+            _logger.error(f"JSON decode error: {e}")
+            _logger.error(f"Response content: {response.text}")
+            raise UserError(f"JSON decode error: {e}")
+
+        
+    def check_blocked(self):
+        for rec in self:
+            current_company = self.env.user.company_id
+            url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Entry_No={int(self.entry_no)})?$format=json'
+            headers = {'Content-Type': 'application/json', 'If-Match': rec.retrieve_etag(self.entry_no)}
+
+            username = current_company.username_api
+            password = current_company.password_api
+
+            data = {
+                "Blocked": True if self.blocked == True else False,
+            }
+
+            try:
+                auth = HttpNtlmAuth(username, password)
+                response = requests.patch(url, headers=headers, auth=auth, json=data)
+                response.raise_for_status()  # Raise an HTTPError for bad responses
+                _logger.debug(f"Response Status Code: {response.status_code}")
+                _logger.debug(f"Response Headers: {response.headers}")
+                _logger.debug(f"Response Content: {response.content}")
+            except requests.exceptions.RequestException as e:
+                _logger.error(f"HTTP error occurred: {e}")
+                raise UserError(f"HTTP error occurred: {e}")
+            except ValueError as e:
+                _logger.error(f"JSON decode error: {e}")
+                _logger.error(f"Response content: {response.text}")
+                raise UserError(f"JSON decode error: {e}")
+            
+            rec.blocked = True
+
 
     def retrieve_etag(self, entryno):
         current_company = self.env.user.company_id
@@ -88,10 +145,20 @@ class TmsItemIdentifiers(models.Model):
             _logger.error(f"Response content: {response.text}")
             raise UserError(f"JSON decode error: {e}")
         
-    def update_item_identifier(self, entryno):
+    def create_item_identifiers(self):
+       
+        # Retrieve etag from response headers
+        if not self.entry_no:
+            self.post_item_identifier()
+        else:
+            self.update_item_identifier(self.entry_no, blocked=False)
+     
+        self.create_item_line_idenfitiers()
+    
+    def update_item_identifier(self, entryno, blocked):
         etag = self.retrieve_etag(entryno)
         current_company = self.env.user.company_id
-        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Entry_No={int(entryno)})?$format=json'
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Entry_No={int(self.entry_no)})?$format=json'
         headers = {'Content-Type': 'application/json', 'If-Match': etag}
 
         username = current_company.username_api
@@ -103,7 +170,8 @@ class TmsItemIdentifiers(models.Model):
             "Variant_Code": self.variant_code.code if self.variant_code else "",
             "Blocked": True if self.blocked == True else False,
             "Entry_No": self.entry_no,
-            "Need_Sent_to_WMS": "false",
+            "Need_Sent_to_WMS": False,
+            "Blocked": blocked
         }
 
         try:
@@ -121,7 +189,7 @@ class TmsItemIdentifiers(models.Model):
             _logger.error(f"Response content: {response.text}")
             raise UserError(f"JSON decode error: {e}")
 
-    def create_item_identifiers(self):
+    def post_item_identifier(self):
         current_company = self.env.user.company_id
         url2 = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes?$format=json'
         headers = {'Content-Type': 'application/json'}
@@ -142,7 +210,7 @@ class TmsItemIdentifiers(models.Model):
              'Unit_Of_Measure_Code': self.unit_of_measure_code.code,
              "Barcode_Type": self.barcode_type,
              "Blocked": blocked,
-             "Need_Sent_to_WMS": "false",
+             "Need_Sent_to_WMS": False,
         }
         try:
             response = requests.post(url2, headers=headers, auth=auth, json=data2)
@@ -161,15 +229,8 @@ class TmsItemIdentifiers(models.Model):
                 error_message = response.text  # Fallback to the full response text if XML parsing fails
             _logger.error(f"HTTP error occurred while create item idenfirers: {error_message}")
             raise UserError(error_message)
-        except requests.exceptions.RequestException as e:
-            error_message = f"HTTP error occurred: {str(e)}"
-            _logger.error(error_message)
-            raise UserError(error_message)
-        except ValueError as e:
-            error_message = f"JSON encode error: {str(e)} {data2}"
-            _logger.error(error_message)
-            raise UserError(error_message)
-
+    
+    
     # barcode split 2
     @api.onchange('sh_product_barcode_mobile', 'barcode_type')
     def _onchange_sh_product_barcode_mobile(self):
@@ -267,7 +328,42 @@ class TmsItemIdentifiers(models.Model):
     # barcode split 2
 
     # Line
-    def create_item_line_identifiers(self):
+    def create_item_line_idenfitiers(self):
+        for line in self.item_identifiers_line_ids:
+            current_company = self.env.user.company_id
+            url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={self.entry_no},Sequence={line.sequence})?$format=json'
+            
+            headers = {'Content-Type': 'application/json'}
+            
+            username = current_company.username_api
+            password = current_company.password_api
+
+            auth = HttpNtlmAuth(username, password)
+            response = requests.get(url, headers=headers, auth=auth)
+            # response.raise_for_status()  # Raise an HTTPError for bad responses
+            
+            if response.status_code == 200:
+                etag = response.headers.get('ETag')
+                self.update_item_line_identifier(etag, self.entry_no, line.sequence, line.gs1_identifier, line.description, line.data_length, line.blocked)
+            else:
+                self.post_item_line_identifiers(line.sequence, line.gs1_identifier, line.description, line.data_length)
+            
+            # try:
+            #     auth = HttpNtlmAuth(username, password)
+            #     response = requests.get(url, headers=headers, auth=auth)
+            #     response.raise_for_status()  # Raise an HTTPError for bad responses
+                
+            #     # Retrieve etag from response headers
+            #     etag = response.headers.get('ETag')
+            #     # if not etag:
+                   
+            #     # else:
+            #     self.update_item_line_identifier(etag, self.entry_no,line.sequence, line.gs1_identifier, line.description, line.data_length)
+            # except requests.exceptions.RequestException as e:
+            #     # self.post_item_line_identifiers(line.sequence, line.gs1_identifier, line.description, line.data_length)
+            #     raise ValidationError(e)
+
+    def post_item_line_identifiers(self, sequence, gs1_iden, description, length):
         current_company = self.env.user.company_id
         url2 = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail?$format=json'
         headers = {'Content-Type': 'application/json'}
@@ -276,30 +372,62 @@ class TmsItemIdentifiers(models.Model):
         password = current_company.password_api
         
         auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
+        data2 = {
+            "Source_Entry_No": self.entry_no,
+            "Sequence": sequence,
+            "GS1_Identifier": gs1_iden,
+            "Description": description,
+            "Data_Length": length,
+            "Need_Sent_to_WMS": False,
+        }
+        try:
 
-        for line in self.item_identifiers_line_ids:
-            data2 = {
-                "Source_Entry_No": self.entry_no,
-                "Sequence": line.sequence,
-                "GS1_Identifier": line.gs1_identifier,
-                "Description": line.description,
-                "Data_Length": line.data_length,
-                "Need_Sent_to_WMS": "false",
-            }
+            response = requests.post(url2, headers=headers, auth=auth, json=data2)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
             try:
-                response = requests.post(url2, headers=headers, auth=auth, json=data2)
-                response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                try:
-                    root = ET.fromstring(response.text)
-                    error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
-                except ET.ParseError:
-                    error_message = response.text
-                _logger.error(f"HTTP error occurred while creating line identifiers: {error_message}")
-                raise UserError(error_message)
-            except requests.exceptions.RequestException as e:
-                _logger.error(f"HTTP error occurred: {str(e)}")
-                raise UserError(f"HTTP error occurred: {str(e)}")
+                root = ET.fromstring(response.text)
+                error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
+            except ET.ParseError:
+                error_message = response.text
+            _logger.error(f"HTTP error occurred while creating line identifiers: {error_message}")
+            raise UserError(error_message)
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"HTTP error occurred: {str(e)}")
+            raise UserError(f"HTTP error occurred: {str(e)}")
+        
+    def update_item_line_identifier(self, etag, entryno, seq, gs1_ident,description,length,blocked):
+        current_company = self.env.user.company_id
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(entryno)},Sequence={int(seq)})?$format=json'
+        headers = {'Content-Type': 'application/json', 'If-Match': etag}
+
+        username = current_company.username_api
+        password = current_company.password_api
+
+        data = {
+            'GS1_Identifier': gs1_ident,
+            'Description': description,
+            'Data_Length': length,
+            'Need_Sent_to_WMS': False,
+            'Blocked': blocked
+        }
+
+        try:
+            auth = HttpNtlmAuth(username, password)
+            response = requests.patch(url, headers=headers, auth=auth, json=data)
+            response.raise_for_status()  # Raise an HTTPError for bad responses
+            _logger.debug(f"Response Status Code: {response.status_code}")
+            _logger.debug(f"Response Headers: {response.headers}")
+            _logger.debug(f"Response Content: {response.content}")
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"HTTP error occurred: {e}")
+            raise UserError(f"HTTP error occurred: {e}")
+        except ValueError as e:
+            _logger.error(f"JSON decode error: {e}")
+            _logger.error(f"Response content: {response.text}")
+            raise UserError(f"JSON decode error: {e}")
+        
+    
     # Line
 
 class TMSItemIdentifierLine(models.Model):
@@ -314,22 +442,71 @@ class TMSItemIdentifierLine(models.Model):
     need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")
     blocked = fields.Boolean(string="Blocked")
 
-    def write(self, vals):
+    def check_line_blocked(self):
         for record in self:
             entry_no = record.header_id.entry_no
             sequence = record.sequence
             blocked = record.blocked
 
-            res = super(TMSItemIdentifierLine, record).write(vals)
+            current_company = self.env.user.company_id
+            url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(entry_no)},Sequence={int(sequence)},Blocked={str(blocked).lower()})?$format=json'
+            headers = {'Content-Type': 'application/json', 'If-Match': record.retrieve_line_etag(entry_no, sequence, blocked)}
 
-            record.update_item_line_identifier(entry_no, sequence, blocked)
+            username = current_company.username_api
+            password = current_company.password_api
 
-        return res
+            data = {
+                'Blocked':True,
+            }
 
+            try:
+                auth = HttpNtlmAuth(username, password)
+                response = requests.patch(url, headers=headers, auth=auth, json=data)
+                response.raise_for_status()  # Raise an HTTPError for bad responses
+                _logger.debug(f"Response Status Code: {response.status_code}")
+                _logger.debug(f"Response Headers: {response.headers}")
+                _logger.debug(f"Response Content: {response.content}")
+            except requests.exceptions.RequestException as e:
+                _logger.error(f"HTTP error occurred: {e}")
+                raise UserError(f"HTTP error occurred: {e}")
+            except ValueError as e:
+                _logger.error(f"JSON decode error: {e}")
+                _logger.error(f"Response content: {response.text}")
+                raise UserError(f"JSON decode error: {e}")
+            
+            
+            record.unlink()
 
-    def retrieve_line_etag(self, entryno, sequence, blocked):
+    def unlink(self):
+        self.delete_item_line_identifier(self.retrieve_line_etag(self.header_id.entry_no, self.sequence), self.header_id.entry_no,self.sequence)
+        # Proceed with the standard unlink process
+        return super(TMSItemIdentifierLine, self).unlink()
+
+    def delete_item_line_identifier(self, etag, entryno, seq):
         current_company = self.env.user.company_id
-        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(entryno)},Sequence={int(sequence)},Blocked={str(blocked).lower()})?$format=json'
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(entryno)},Sequence={int(seq)})?$format=json'
+        headers = {'Content-Type': 'application/json', 'If-Match': etag}
+
+        username = current_company.username_api
+        password = current_company.password_api
+        try:
+            auth = HttpNtlmAuth(username, password)
+            response = requests.delete(url, headers=headers, auth=auth)
+            # response.raise_for_status()  # Raise an HTTPError for bad responses
+            _logger.debug(f"Response Status Code: {response.status_code}")
+            _logger.debug(f"Response Headers: {response.headers}")
+            _logger.debug(f"Response Content: {response.content}")
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"HTTP error occurred: {e}")
+            raise UserError(f"HTTP error occurred: {e}")
+        except ValueError as e:
+            _logger.error(f"JSON decode error: {e}")
+            _logger.error(f"Response content: {response.text}")
+            raise UserError(f"JSON decode error: {e}")
+        
+    def retrieve_line_etag(self, entryno, sequence):
+        current_company = self.env.user.company_id
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(entryno)},Sequence={int(sequence)})?$format=json'
         
         headers = {'Content-Type': 'application/json'}
         
@@ -356,35 +533,19 @@ class TMSItemIdentifierLine(models.Model):
             _logger.error(f"JSON decode error: {e}")
             _logger.error(f"Response content: {response.text}")
             raise UserError(f"JSON decode error: {e}")
+    # def write(self, vals):
+    #     for record in self:
+    #         entry_no = record.header_id.entry_no
+    #         sequence = record.sequence
+    #         blocked = record.blocked
+
+    #         res = super(TMSItemIdentifierLine, record).write(vals)
+
+    #         record.update_item_line_identifier(entry_no, sequence, blocked)
+
+    #     return res
+
+    
         
-    def update_item_line_identifier(self, entryno, seq, blocked):
-        etag = self.retrieve_line_etag(entryno, seq, blocked)
-        current_company = self.env.user.company_id
-        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(entryno)},Sequence={int(seq)},Blocked={str(blocked).lower()})?$format=json'
-        headers = {'Content-Type': 'application/json', 'If-Match': etag}
-
-        username = current_company.username_api
-        password = current_company.password_api
-
-        data = {
-            'GS1_Identifier': self.gs1_identifier,
-            'Description': self.description,
-            'Data_Length': self.data_length,
-            'Need_Sent_to_WMS': False
-        }
-
-        try:
-            auth = HttpNtlmAuth(username, password)
-            response = requests.patch(url, headers=headers, auth=auth, json=data)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
-            _logger.debug(f"Response Status Code: {response.status_code}")
-            _logger.debug(f"Response Headers: {response.headers}")
-            _logger.debug(f"Response Content: {response.content}")
-        except requests.exceptions.RequestException as e:
-            _logger.error(f"HTTP error occurred: {e}")
-            raise UserError(f"HTTP error occurred: {e}")
-        except ValueError as e:
-            _logger.error(f"JSON decode error: {e}")
-            _logger.error(f"Response content: {response.text}")
-            raise UserError(f"JSON decode error: {e}")
+    
         
