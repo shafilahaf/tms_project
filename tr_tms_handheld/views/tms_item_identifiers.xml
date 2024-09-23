@@ -15,7 +15,7 @@
               <field name="unit_of_measure_code"/>
               <field name="barcode_type" />
               <!-- <field name="barcode_code" widget="rt_widget_field_char_qr_cam" force_save="1"/> -->
-              <field name="sh_product_barcode_mobile" string="Barcode Code"/>
+              <field name="sh_product_barcode_mobile" string="Barcode Code" force_save="1"/>
               <script type="text/javascript" src="/sh_product_barcode_mobile/static/src/js/sh_product_barcode_mobile.js"></script>
                 <section class="oe_edit_only">
                     <div>

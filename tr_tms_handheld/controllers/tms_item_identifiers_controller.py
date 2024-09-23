@@ -23,7 +23,9 @@ class TmsItemIdentifiers(http.Controller):
         tms_uom_model = request.env['tms.unit.of.measures'].sudo()
         item = request.env['tms.item'].sudo()
 
-        if blocked:
+        block_2 = False if blocked == "false" else True
+
+        if block_2:
             if tms_item_identifiers.search([('item_no', '=', item_no), ('variant_code', '=', variant_code)]):
                 tms_item_identifiers.sudo().unlink()
         else:
@@ -38,7 +40,7 @@ class TmsItemIdentifiers(http.Controller):
                     'unit_of_measure_code': uom_record.id,
                     'barcode_type': barcode_type,
                     'barcode_code': barcode_code,
-                    'blocked': blocked,
+                    'blocked': False if blocked == "false" else True,
                     'entry_no': entry_no,
                 })
                 return {
@@ -53,8 +55,9 @@ class TmsItemIdentifiers(http.Controller):
                     'unit_of_measure_code': uom_record.id,
                     'barcode_type': barcode_type,
                     'barcode_code': barcode_code,
-                    'blocked': blocked,
+                    'blocked': False if blocked=="false" else True,
                     'entry_no': entry_no,
+                    'from_nav': True
                 })
                 return {
                     'message': 'Item Identifiers created successfully',
@@ -98,7 +101,8 @@ class TmsItemIdentifiers(http.Controller):
             ('sequence', '=', sequence)
         ], limit=1)
 
-        if blocked:
+        block_2 = False if blocked == "false" else True
+        if block_2:
             if line_record:
                 line_record.sudo().unlink()
         else:
@@ -108,7 +112,7 @@ class TmsItemIdentifiers(http.Controller):
                     'gs1_identifier': gs1_identifier,
                     'description': description,
                     'data_length': data_length,
-                    'blocked': blocked,
+                    'blocked': block_2,
                 })
             else:
                 request.env['tms.item.identifiers.line'].sudo().create({
@@ -117,7 +121,7 @@ class TmsItemIdentifiers(http.Controller):
                     'gs1_identifier': gs1_identifier,
                     'description': description,
                     'data_length': data_length,
-                    'blocked': blocked,
+                    'blocked': block_2,
                 })
 
             return {

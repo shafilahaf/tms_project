@@ -25,121 +25,60 @@ class TMSPurchaseReceiptScanItem(models.Model):
     exp_date = fields.Date('Exp Date')
     lot_number = fields.Char('Lot No.')
 
-    @api.onchange('barcode_code')
-    def _onchange_barcode_code(self):
-        if self.barcode_code:
-            item_barcode = self.env['tms.item.identifiers'].search([
-                ('barcode_code','=',self.barcode_code),
-                ('blocked', '=', False)
-            ])
-            if item_barcode:
-                self.item_no = item_barcode.item_no.id
-            else:
-                parsed_data = self.parse_gs1_128_barcode(self.barcode_code)
-                barcode_code_gtin = parsed_data.get('01')
-                item_barcode = self.env['tms.item.identifiers'].search([
-                    ('barcode_code','=', barcode_code_gtin),
-                    ('blocked', '=', False)
-                ])
-                if item_barcode:
-                    self.item_no = item_barcode.item_no.id
-                else:
-                    raise UserError('Item not found.')
-            
-            sn = parsed_data.get('21')
-            lot = parsed_data.get('10')
-            exp_date = parsed_data.get('17')
+    # SH
+    sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)    
 
-            if sn:
-                self.serial_number = sn
-            if lot:
-                self.lot_number = lot
+    #barcode
+    @api.onchange('sh_product_barcode_mobile')
+    def _onchange_sh_product_barcode_mobile(self):
+        if self.sh_product_barcode_mobile:  
+            try:
+                # barcode parsing method for GS1-128
+                # parsed_data = self.parse_gs1_128_barcode(self.sh_product_barcode_mobile)
+                # self.sh_product_barcode_mobile = parsed_data
+                self.parse_gs1_128_barcode(self.sh_product_barcode_mobile)
 
-            if exp_date:
-                try:
-                    self.exp_date = datetime.strptime(exp_date, '%d%m%y').date()
-                except ValueError:
-                    raise UserError('Invalid expiration date format.')
+            except Exception as e:
+                raise ValidationError(f"Error parsing GS1-128 barcode: {str(e)}")
+
+    # def parse_gs1_128_barcode(self, barcode):
+    #     if barcode[:2] == "01":
+    #         digit_first_14 = barcode[2:13]
+    #         new_barcode= digit_first_14
+
+
+    #         item_barcode = self.env['tms.item.identifiers'].search([
+    #             ('barcode_code', '=', new_barcode)
+    #         ])
+
+    #         if item_barcode:
+    #             self.item_no = item_barcode.item_no.id
+
+    #         barcode_2 = barcode.replace(new_barcode, '')
+    #         for detail in item_barcode.item_identifiers_line_ids:
                 
+    #             barcode_3 = barcode_2[2:detail.data_length]
+    #             cek_barcode = barcode_2[:2]
+    #             match cek_barcode:
+    #                 case "21":
+    #                     self.serial_number = barcode_3
+    #                 case "17":
+    #                     try:
+    #                         self.exp_date = datetime.strptime(barcode_3, '%d%m%y').date()
+    #                     except ValueError:
+    #                         raise UserError('Invalid expiration date format.')
+    #                 case "10":
+    #                     self.lot_number = barcode_3
+    #                 case "23":
+    #                     self.lot_number = barcode_3
 
-    # barcode
-    def parse_gs1_128_barcode(self, barcode):
-        """
-        Parses a GS1-128 barcode, handling FNC1 separators and extracting AI data.
-        """
-        # GS1-128 FNC1 separator is ASCII 29 or \x1D
-        fnc1_separator = '\x1D'
-        
-        # Replace FNC1 separator with something easier to handle or remove it
-        barcode = barcode.replace(fnc1_separator, '')
+    #             barcode_2 = barcode_2.replace(barcode_3, '')
+    #     else:
+    #         new_barcode = barcode
 
-        # Application Identifiers and their expected fixed lengths
-        fixed_length_ai = {
-            '00': 18,  # Serial Shipping Container Code (SSCC)
-            '01': 14,  # Global Trade Item Number (GTIN)
-            '02': 14,  # GTIN of contained trade items
-            '11': 6,   # Production date (YYMMDD)
-            '12': 6,   # Due date (YYMMDD)
-            '13': 6,   # Packaging date (YYMMDD)
-            '15': 6,   # Best before date (YYMMDD)
-            '16': 6,   # Sell by date (YYMMDD)
-            '17': 6,   # Expiration date (YYMMDD)
-            '20': 2,   # Internal product variant
-        }
+    #barcode
 
-        # Variable-length AI definitions (delimited by FNC1)
-        variable_length_ai = {
-            '10': 20,  # Batch or lot number
-            '21': 20,  # Serial number
-            '22': 20,  # Consumer product variant
-            '235': 28, # Third Party Controlled, Serialised Extension of GTIN (TPX)
-            '240': 30, # Additional product identification assigned by the manufacturer
-            '241': 30, # Customer part number
-            '242': 6,  # Made-to-Order variation number
-            '243': 20, # Packaging component number
-            '250': 30, # Secondary serial number
-            '251': 30, # Reference to source entity
-            '253': 30, # Global Document Type Identifier (GDTI) - variable format
-            '254': 20, # GLN extension component
-            '255': 25, # Global Coupon Number (GCN) - variable format
-            '30': 8,   # Variable count of items (variable measure trade item)
-        }
-
-        ai_data = {}
-        index = 0
-
-        while index < len(barcode):
-            ai = barcode[index:index + 2]
-            if ai in ['253', '255']:  # Handle the 3-digit AIs
-                ai = barcode[index:index + 3]
-                index += 3
-            else:
-                index += 2
-
-            if ai in fixed_length_ai:
-                length = fixed_length_ai[ai]
-                value = barcode[index:index + length]
-                index += length
-                ai_data[ai] = value
-            elif ai in variable_length_ai:
-                max_length = variable_length_ai[ai]
-
-                fnc1_pos = barcode.find(fnc1_separator, index)
-                if fnc1_pos == -1:
-                    value = barcode[index:index + max_length]
-                    index += len(value)
-                else:
-                    value = barcode[index:fnc1_pos]
-                    index = fnc1_pos + 1
-
-                ai_data[ai] = value
-            else:
-                raise ValidationError(f"Unknown Application Identifier (AI): {ai}")
-
-        return ai_data
-    # barcode
-
-
+    
     @api.depends('item_tracking_code')
     def _compute_contains_sn(self):
         for record in self:
