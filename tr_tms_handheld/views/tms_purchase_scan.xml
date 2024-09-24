@@ -13,7 +13,32 @@
                          <button name="back_to_receipt" string="Back to Receipt" type="object" class="oe_highlight" style="margin-left: 10px;" />
                     </div>
                     <group>
-                        <field name="barcode_code" widget="rt_widget_field_char_qr_cam"/>
+                        <!-- <field name="barcode_code" widget="rt_widget_field_char_qr_cam"/> -->
+                        <field name="sh_product_barcode_mobile" string="Barcode Code" force_save="1"/>
+                        <script type="text/javascript" src="/sh_product_barcode_mobile/static/src/js/sh_product_barcode_mobile.js"></script>
+                        <section class="oe_edit_only">
+                            <div>
+                                <a role="button" style="color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-primary" id="js_id_sh_product_barcode_mobile_start_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Start
+                                </a>
+                                <a role="button" style="display: none; color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-danger" id="js_id_sh_product_barcode_mobile_reset_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Stop
+                                </a>
+                            </div>
+                            <div id="js_id_sh_product_barcode_mobile_vid_div" style="display: none;">
+                                <group style="margin-bottom: 10px;">
+                                    <div class="form-group row" style="margin-bottom: 0px;">
+                                        <strong style="align-self: center;" class="col-3">Camera</strong>
+                                        <select class="col-8 form-control" id="js_id_sh_product_barcode_mobile_cam_select"> </select>
+                                    </div>
+                                </group>
+                                <video id="video" class="cls_sh_all_in_one_mbs_video_tag" width="600" height="400" style="border: 1px solid gray;"></video>
+                                <span style="display: block;">Result:</span>
+                                <code id="js_id_sh_product_barcode_mobile_result"></code>
+                            </div>
+                        </section>
                         <field name="item_no" options="{'no_create': True, 'no_create_edit':True}"/>
                         <field name="item_description" force_save="1"/>
                         <field name="serial_number" attrs="{'invisible': [('contains_sn','=',False)]}" widget="rt_widget_field_char_qr_cam"/>

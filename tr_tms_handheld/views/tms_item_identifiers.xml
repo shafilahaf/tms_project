@@ -40,7 +40,8 @@
                         <code id="js_id_sh_product_barcode_mobile_result"></code>
                     </div>
                 </section>
-              <field name="entry_no" invisible="1"/>
+              <field name="entry_no" invisible="0"/>
+              <field name="need_sent_to_nav" />
             </group>
             <notebook>
               <page name="line" string="Line">

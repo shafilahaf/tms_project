@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 import requests
 import logging
@@ -260,7 +260,7 @@ class TmsItemIdentifiers(models.Model):
 
     def parse_gs1_128_barcode(self, barcode):
         if barcode[:2] == "01":
-            digit_first_14 = barcode[2:13]
+            digit_first_14 = barcode[2:16]
             new_barcode= digit_first_14
         else:
             new_barcode = barcode
@@ -281,6 +281,21 @@ class TMSItemIdentifierLine(models.Model):
     blocked = fields.Boolean(string="Blocked")
     from_nav = fields.Boolean(string="From NAV", default=False)
     need_sent_to_nav = fields.Boolean(string="Need Sent to NAV", default=True)
+
+    @api.constrains('sequence', 'header_id')
+    def _check_unique_sequence(self):
+        """ Ensure the sequence is unique per header_id """
+        for record in self:
+            if record.sequence:
+                duplicate = self.search([
+                    ('sequence', '=', record.sequence),
+                    ('header_id', '=', record.header_id.id),
+                    ('id', '!=', record.id)
+                ])
+                if duplicate:
+                    raise ValidationError(f"Sequence {record.sequence} already exists for this header.")
+            if record.sequence == 0:
+                raise ValidationError(_("Sequence cannot be 0. Please assign a valid sequence number."))
 
     def write(self, vals):
         # Set need_sent_to_nav to True when edited

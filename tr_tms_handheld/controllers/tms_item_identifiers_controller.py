@@ -26,7 +26,7 @@ class TmsItemIdentifiers(http.Controller):
         block_2 = False if blocked == "false" else True
 
         if block_2:
-            item_identifiers = tms_item_identifiers.sudo().search([('item_no', '=', item_no), ('variant_code', '=', variant_code)])
+            item_identifiers = tms_item_identifiers.sudo().search([('entry_no', '=', entry_no)])
             if item_identifiers:
                 item_identifiers.sudo().unlink()
                 return {
@@ -37,8 +37,8 @@ class TmsItemIdentifiers(http.Controller):
             uom_record = tms_uom_model.search([('code', '=', unit_of_measure_code)], limit=1)
             item_record = item.search([('no', '=', item_no)], limit=1)
 
-            if tms_item_identifiers.search([('item_no', '=', item_no), ('variant_code', '=', variant_code)]):
-                item_identifier = tms_item_identifiers.search([('item_no', '=', item_no), ('variant_code', '=', variant_code)])
+            if tms_item_identifiers.search([('entry_no', '=', entry_no)]):
+                item_identifier = tms_item_identifiers.search([('entry_no', '=', entry_no)])
                 item_identifier.write({
                     'item_no': item_record.id,
                     'variant_code': variant_code,
