@@ -6,13 +6,13 @@
       <field name="arch" type="xml">
         <form string="TMS Item Identifiers">
           <header>
-            <!-- <button name="check_blocked" string="Block Item Barcode" type="object" class="oe_highlight" /> -->
+            <!-- <button name="unlink_identifier" string="Delete" type="object" class="oe_highlight" /> -->
           </header>
           <sheet>
             <group>
               <field name="item_no"/>
-              <field name="variant_code"/>
-              <field name="unit_of_measure_code"/>
+              <field name="variant_code" force_save="1"/>
+              <field name="unit_of_measure_code" force_save="1"/>
               <field name="barcode_type" />
               <!-- <field name="barcode_code" widget="rt_widget_field_char_qr_cam" force_save="1"/> -->
               <field name="sh_product_barcode_mobile" string="Barcode Code" force_save="1"/>
@@ -40,7 +40,6 @@
                         <code id="js_id_sh_product_barcode_mobile_result"></code>
                     </div>
                 </section>
-              <!-- <field name="blocked" /> -->
               <field name="entry_no" invisible="1"/>
             </group>
             <notebook>
@@ -51,8 +50,7 @@
                     <field name="gs1_identifier" />
                     <field name="data_length" />
                     <field name="description" />
-                    <!-- <field name="blocked" /> -->
-                    <!-- <button name="check_line_blocked" string="Block" type="object" class="oe_highlight" /> -->
+                    <field name="need_sent_to_nav" invisible="1"/>
                   </tree>
                   <form>
                     <group>
@@ -60,8 +58,7 @@
                       <field name="gs1_identifier" />
                       <field name="data_length" />
                       <field name="description" />
-                      <!-- <field name="blocked" /> -->
-                      <!-- <button name="check_line_blocked" string="Block" type="object" class="oe_highlight" /> -->
+                      <field name="need_sent_to_nav" invisible="1"/>
                     </group>
                   </form>
                 </field>
@@ -85,6 +82,16 @@
               <field name="blocked" />
         </tree>
       </field>
+    </record>
+
+    <record id="ir_cron_post_item_identifiers_to_nav" model="ir.cron">
+        <field name="name">Post Item Identifiers Line to NAV</field>
+        <field name="model_id" ref="model_tms_item_identifiers_line"/>
+        <field name="state">code</field>
+        <field name="code">model.post_patch_item_identifiers_to_api()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+        <field name="active">True</field>
     </record>
   </data>
 </odoo>

@@ -95,9 +95,9 @@
     <menuitem id="menu_tms_handheld_master" name="Master Data" parent="menu_tms_handheld" sequence="10"/>
     <!-- <menuitem id="menu_tms_unit_of_measures" name="Unit of Measures" parent="menu_tms_handheld_master" action="action_tms_unit_of_measures" sequence="10"/> -->
     <menuitem id="menu_tms_items" name="Items" parent="menu_tms_handheld_master" action="action_tms_items" sequence="20"/>
-    <!-- <menuitem id="menu_tms_item_uom" name="Items UoM" parent="menu_tms_handheld_master" action="action_tms_item_uom" sequence="30"/> -->
-    <menuitem id="menu_tms_item_identifiers" name="Items Identifiers" parent="menu_tms_handheld_master" action="action_tms_item_identifiers" sequence="40"/>
-    <!-- <menuitem id="menu_tms_item_variant" name="Items Variant" parent="menu_tms_handheld_master" action="action_tms_item_variant" sequence="50"/> -->
+    <menuitem id="menu_tms_item_uom" name="Items UoM" parent="menu_tms_handheld_master" action="action_tms_item_uom" sequence="30"/>
+    <!-- <menuitem id="menu_tms_item_identifiers" name="Items Identifiers" parent="menu_tms_handheld_master" action="action_tms_item_identifiers" sequence="40"/> -->
+    <menuitem id="menu_tms_item_variant" name="Items Variant" parent="menu_tms_handheld_master" action="action_tms_item_variant" sequence="50"/>
     <!-- <menuitem id="menu_tms_reservation_entry" name="Reservation Entry" parent="menu_tms_handheld_master" action="action_tms_reservation_entry" sequence="60"/> -->
 
     <menuitem id="menu_tms_handheld_receive" name="Receive" parent="menu_tms_handheld" sequence="20"/>

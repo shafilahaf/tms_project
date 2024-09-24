@@ -26,8 +26,13 @@ class TmsItemIdentifiers(http.Controller):
         block_2 = False if blocked == "false" else True
 
         if block_2:
-            if tms_item_identifiers.search([('item_no', '=', item_no), ('variant_code', '=', variant_code)]):
-                tms_item_identifiers.sudo().unlink()
+            item_identifiers = tms_item_identifiers.sudo().search([('item_no', '=', item_no), ('variant_code', '=', variant_code)])
+            if item_identifiers:
+                item_identifiers.sudo().unlink()
+                return {
+                    'message': 'Item Identifiers unlinked successfully',
+                    'response': 200
+                }
         else:
             uom_record = tms_uom_model.search([('code', '=', unit_of_measure_code)], limit=1)
             item_record = item.search([('no', '=', item_no)], limit=1)
@@ -39,7 +44,7 @@ class TmsItemIdentifiers(http.Controller):
                     'variant_code': variant_code,
                     'unit_of_measure_code': uom_record.id,
                     'barcode_type': barcode_type,
-                    'barcode_code': barcode_code,
+                    'sh_product_barcode_mobile': barcode_code,
                     'blocked': False if blocked == "false" else True,
                     'entry_no': entry_no,
                 })
@@ -47,25 +52,23 @@ class TmsItemIdentifiers(http.Controller):
                     'message': 'Item Identifiers updated successfully',
                     'response': 200
                 }
-
             try:
                 tms_item_identifiers.create({
                     'item_no': item_record.id,
                     'variant_code': variant_code,
                     'unit_of_measure_code': uom_record.id,
                     'barcode_type': barcode_type,
-                    'barcode_code': barcode_code,
+                    'sh_product_barcode_mobile': barcode_code,
                     'blocked': False if blocked=="false" else True,
                     'entry_no': entry_no,
                     'from_nav': True
                 })
                 return {
                     'message': 'Item Identifiers created successfully',
-                    'response': 200,
-                    'entry_no': tms_item_identifiers.id
+                    'response': 200
                 }
             except Exception as e:
-                _logger.error("Error creating Item Identifiers: %s", e)
+                _logger.error("Error fetching Item Journal Line: %s", e)
                 return {
                     'error': str(e),
                     'response': 500
@@ -105,6 +108,10 @@ class TmsItemIdentifiers(http.Controller):
         if block_2:
             if line_record:
                 line_record.sudo().unlink()
+                return {
+                    'message': 'Item Identifier Line unlinked successfully',
+                    'response': 200
+                }
         else:
 
             if line_record:
@@ -113,6 +120,7 @@ class TmsItemIdentifiers(http.Controller):
                     'description': description,
                     'data_length': data_length,
                     'blocked': block_2,
+                    'from_nav': True
                 })
             else:
                 request.env['tms.item.identifiers.line'].sudo().create({
@@ -122,6 +130,7 @@ class TmsItemIdentifiers(http.Controller):
                     'description': description,
                     'data_length': data_length,
                     'blocked': block_2,
+                    'from_nav': True
                 })
 
             return {

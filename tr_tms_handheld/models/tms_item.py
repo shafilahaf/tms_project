@@ -61,7 +61,7 @@ class TmsItem(models.Model):
             'context': {
                 'default_item_no': self.id,
                 'default_unit_of_measure_code': default_uom_code.id,
-                'create': True, 'edit': True, 'delete': False
+                'create': True, 'edit': True, 'delete': True
             },
             'domain': [('item_no', '=', self.id)]
         }
