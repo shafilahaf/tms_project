@@ -1,7 +1,11 @@
-.o_form_view {
-    .o_td_label .o_form_label:not(.o_status):not(.o_calendar_invitation) {
-        @include media-breakpoint-down(sm) {
-            width: 50% !important;
-        }        
-    }    
+
+.o_content,
+.modal-content {
+    .o_form_view {
+        .o_td_label .o_form_label:not(.o_status):not(.o_calendar_invitation) {
+            @include media-breakpoint-down(sm) {
+                width: 50% !important;
+            }        
+        }    
+    }
 }
