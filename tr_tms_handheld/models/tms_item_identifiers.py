@@ -37,6 +37,22 @@ class TmsItemIdentifiers(models.Model):
     #     rec = self.env['tms.item.identifiers'].search([])
     #     rec.unlink()
 
+    def create_identifier_line(self):
+        return {
+            'name': 'Item Line Identifiers',
+            'type': 'ir.actions.act_window',
+            'res_model': 'tms.item.identifiers.line',
+            'view_mode': 'form',
+            'target': 'current',
+            'context': {
+                'default_source_entry_no': self.entry_no,
+                'create': True, 'edit': True, 'delete': True,
+                'from_odoo': True,
+                'default_header_id': self.id,
+            },
+            'domain': [('source_entry_no', '=', self.entry_no)]
+        }
+
     @api.onchange('item_no')
     def _onchange_item_no(self):
         # for rec in self:
@@ -54,32 +70,35 @@ class TmsItemIdentifiers(models.Model):
     
     @api.model
     def create(self, vals):
-        if self._context.get('from_odoo'):
-            self.create_item_identifiers(vals)
-        
         record = super(TmsItemIdentifiers, self).create(vals)
+        if self._context.get('from_odoo'):
+            self.create_item_identifiers(vals, record)
+
+        
         return record
 
+
     def write(self, vals):
+        res = super(TmsItemIdentifiers, self).write(vals)
         for record in self:
             if self._context.get('from_odoo'):
-                self.create_item_identifiers(vals)
+                self.create_item_identifiers(vals, record)
 
-        
-        res = super(TmsItemIdentifiers, self).write(vals)
         return res
     
     def unlink(self):
         for record in self:
             if self._context.get('from_odoo'):
-                self.delete_item_identifier(self.retrieve_etag(self.entry_no), self.entry_no)
+                etag = self.retrieve_etag(self.entry_no)
+                if etag:
+                    self.delete_item_identifier(etag, self.entry_no)
         # Proceed with the standard unlink process
         return super(TmsItemIdentifiers, self).unlink()
 
     # SENd API to NAV
-    def retrieve_etag(self, entryno):
+    def retrieve_etag(self, itemno ,entryno):
         current_company = self.env.user.company_id
-        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Entry_No={int(entryno)})?$format=json'
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Item_No=\'{itemno}\',Entry_No={int(self.entry_no)})?$format=json'
         
         headers = {'Content-Type': 'application/json'}
         
@@ -95,7 +114,7 @@ class TmsItemIdentifiers(models.Model):
             etag = response.headers.get('ETag')
             if not etag:
                 _logger.error("ETag not found in response headers")
-                raise UserError("ETag not found in response headers")
+                # raise UserError("ETag not found in response headers")
 
             return etag
 
@@ -107,19 +126,19 @@ class TmsItemIdentifiers(models.Model):
             _logger.error(f"Response content: {response.text}")
             raise UserError(f"JSON decode error: {e}")
         
-    def create_item_identifiers(self, vals):
+    def create_item_identifiers(self, vals, rec):
        
         # Retrieve etag from response headers
         if self.entry_no == 0:
-            self.post_item_identifier(vals)
+            self.post_item_identifier(vals, rec)
         else:
-            self.update_item_identifier(vals, self.entry_no)
+            self.update_item_identifier(vals, self.entry_no, rec)
 
     
-    def update_item_identifier(self, vals, entryno):
-        etag = self.retrieve_etag(entryno)
+    def update_item_identifier(self, vals, entryno, rec):
+        etag = self.retrieve_etag(self.item_no.no,entryno)
         current_company = self.env.user.company_id
-        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Entry_No={int(self.entry_no)})?$format=json'
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Item_No=\'{self.item_no.no}\',Entry_No={int(self.entry_no)})?$format=json'
         headers = {'Content-Type': 'application/json', 'If-Match': etag}
 
         username = current_company.username_api
@@ -154,6 +173,7 @@ class TmsItemIdentifiers(models.Model):
              'Unit_Of_Measure_Code': uom_code,
              "Barcode_Type": bartype,
              "Need_Sent_to_WMS": False,
+             "Id": rec.id,
         }
 
         try:
@@ -171,7 +191,7 @@ class TmsItemIdentifiers(models.Model):
             _logger.error(f"Response content: {response.text}")
             raise UserError(f"JSON decode error: {e}")
 
-    def post_item_identifier(self, vals):
+    def post_item_identifier(self, vals, rec):
         current_company = self.env.user.company_id
         url2 = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes?$format=json'
         headers = {'Content-Type': 'application/json'}
@@ -218,15 +238,6 @@ class TmsItemIdentifiers(models.Model):
             'id','=', item_no
         )])
 
-        # data2 = {
-        #      'Item_No': item.no,
-        #      'Variant_Code': self.variant_code if self.variant_code else "",
-        #      "Barcode_Code": self.sh_product_barcode_mobile,
-        #      'Unit_Of_Measure_Code': uom.code,
-        #      "Barcode_Type": self.barcode_type,
-        #      "Need_Sent_to_WMS": False,
-        # }
-
         data2 = {
              'Item_No': item.no,
              'Variant_Code': varcode,
@@ -234,6 +245,7 @@ class TmsItemIdentifiers(models.Model):
              'Unit_Of_Measure_Code': uom_code,
              "Barcode_Type": bartype,
              "Need_Sent_to_WMS": False,
+             "Id": rec.id,
         }
         try:
             response = requests.post(url2, headers=headers, auth=auth, json=data2)
@@ -243,9 +255,10 @@ class TmsItemIdentifiers(models.Model):
             entry_no = response_json.get("Entry_No")
 
             if entry_no:
-                vals['entry_no'] = entry_no
+                rec.entry_no = entry_no
+                self.entry_no = entry_no
 
-            return vals
+            # return vals
         except requests.exceptions.HTTPError as e:
             try:
                 root = ET.fromstring(response.text)
@@ -291,6 +304,7 @@ class TMSItemIdentifierLine(models.Model):
     need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")
     need_sent_to_nav = fields.Boolean(string="Need Sent to NAV", default=True)
     from_nav = fields.Boolean(string="From NAV")
+    source_entry_no = fields.Integer(string="Source Entry No.")
 
     @api.constrains('sequence', 'header_id')
     def _check_unique_sequence(self):
@@ -310,23 +324,25 @@ class TMSItemIdentifierLine(models.Model):
      # Line
     @api.model
     def create(self, vals):
-        if self._context.get('from_odoo'):
-            self.create_item_identifiers_line(vals)
-        
         record = super(TMSItemIdentifierLine, self).create(vals)
+        if self._context.get('from_odoo'):
+            self.create_item_identifiers_line(vals, record)
+        
         return record
 
    
     def write(self, vals):
+        res = super(TMSItemIdentifierLine, self).write(vals)
         for record in self:
             if self._context.get('from_odoo'):
-                self.create_item_identifiers_line(vals)
-        res = super(TMSItemIdentifierLine, self).write(vals)
+                self.create_item_identifiers_line(vals, record)
         return res
     
     def unlink(self):
         if self._context.get('from_odoo'):
-            self.delete_item_line_identifier(self.retrieve_line_etag(self.header_id.entry_no, self.sequence), self.header_id.entry_no,self.sequence)
+            etag = self.retrieve_line_etag(self.header_id.entry_no, self.sequence)
+            if etag:
+                self.delete_item_line_identifier(etag, self.header_id.entry_no,self.sequence)
         return super(TMSItemIdentifierLine, self).unlink()
 
     def delete_item_line_identifier(self, etag, entryno, seq):
@@ -383,22 +399,21 @@ class TMSItemIdentifierLine(models.Model):
             raise UserError(f"JSON decode error: {e}")
 
         
-    def create_item_identifiers_line(self, vals):
+    def create_item_identifiers_line(self, vals, rec):
        
         
         # Retrieve etag from response headers
         if self.id == False:
-            self.post_item_identifier_line(vals)
+            self.post_item_identifier_line(vals, rec)
         else:
-            self.update_item_identifier_line(vals)
+            self.update_item_identifier_line(vals, rec)
 
     
-    def update_item_identifier_line(self, vals):
+    def update_item_identifier_line(self, vals, rec):
       
         
         header = self.env['tms.item.identifiers'].search([
-            ('item_identifiers_line_ids', '=', self._origin.id)
-        ])
+            ('item_identifiers_line_ids', '=', rec.header_id.id)])
        
         if 'sequence' in vals:
             sequence = vals['sequence'] if vals['sequence'] else ""
@@ -419,9 +434,10 @@ class TMSItemIdentifierLine(models.Model):
             data_length =  vals['data_length']
         else:
             data_length = self.data_length
-        etag = self.retrieve_line_etag(header.entry_no, sequence)
+
+        etag = self.retrieve_line_etag(rec.header_id.entry_no, rec.sequence)
         current_company = self.env.user.company_id
-        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(header.entry_no)}, Sequence={sequence})?$format=json'
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(rec.header_id.entry_no)},Sequence={rec.sequence})?$format=json'
         headers = {'Content-Type': 'application/json', 'If-Match': etag}
 
         username = current_company.username_api
@@ -432,6 +448,7 @@ class TMSItemIdentifierLine(models.Model):
              'Description': description,
              "Data_Length": data_length,
              "Need_Sent_to_WMS": False,
+             "Id": rec.id,
         }
 
         try:
@@ -449,7 +466,7 @@ class TMSItemIdentifierLine(models.Model):
             _logger.error(f"Response content: {response.text}")
             raise UserError(f"JSON decode error: {e}")
 
-    def post_item_identifier_line(self, vals):
+    def post_item_identifier_line(self, vals, rec):
         current_company = self.env.user.company_id
         url2 = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail?$format=json'
         headers = {'Content-Type': 'application/json'}
@@ -479,9 +496,9 @@ class TMSItemIdentifierLine(models.Model):
             data_length =  vals['data_length']
         else:
             data_length = self.data_length
-        
+
         header = self.env['tms.item.identifiers'].search([
-            ('id', '=', vals['header_id'])
+            ('id', '=', rec.header_id.id)
         ])
         
         data2 = {
@@ -491,6 +508,7 @@ class TMSItemIdentifierLine(models.Model):
              'Description': description,
              "Data_Length": data_length,
              "Need_Sent_to_WMS": False,
+             "Id": rec.id
         }
         try:
             response = requests.post(url2, headers=headers, auth=auth, json=data2)

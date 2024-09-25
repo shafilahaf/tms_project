@@ -99,7 +99,7 @@ class TmsItemIdentifiers(http.Controller):
         if item_uom == False:
             return {
                 'error': "UoM not Found.",
-                'response': 500
+                'response': 500,
             }
         else:
             uom = uom.search([('code', '=', unit_of_measure_code)])
@@ -119,7 +119,8 @@ class TmsItemIdentifiers(http.Controller):
             })
             return {
                 'message': 'Item Identifiers updated successfully',
-                'response': 200
+                'response': 200,
+                'Id': item_identifier.id
             }
         try:
             tms_item_identifiers.create({
@@ -132,7 +133,8 @@ class TmsItemIdentifiers(http.Controller):
             })
             return {
                 'message': 'Item Identifiers created successfully',
-                'response': 200
+                'response': 200,
+                'Id': item_identifier.id
             }
         except Exception as e:
             _logger.error("Error fetching Item Journal Line: %s", e)
@@ -142,7 +144,7 @@ class TmsItemIdentifiers(http.Controller):
             }
     
     @validate_token
-    @http.route('/api/tms_item_identifiers/<int:id>', auth='none', methods=['DELETE'], csrf=False, type='http')
+    @http.route('/api/tms_item_identifiers/<int:id>', auth='none', methods=['DELETE'], csrf=False, type='json')
     def delete_item_identifiers(self, id):
         """
         Create a new Item Identifiers
@@ -166,6 +168,7 @@ class TmsItemIdentifiers(http.Controller):
         entry_no = data.get('Source_Entry_No')
 
         item_identifier = request.env['tms.item.identifiers'].sudo().search([('entry_no', '=', entry_no)], limit=1)
+        line_record = request.env['tms.item.identifiers.line'].sudo()
 
         if not item_identifier.exists():
             return {
@@ -180,20 +183,40 @@ class TmsItemIdentifiers(http.Controller):
         description = data.get('Description')
         data_length = data.get('Data_Length')
 
-        line_record = request.env['tms.item.identifiers.line'].sudo().search([
-            ('header_id', '=', item_identifier.id),
-            ('header_id.entry_no', '=', entry_no),
-            ('sequence', '=', sequence)
-        ], limit=1)
+        # line_record = request.env['tms.item.identifiers.line'].sudo().search([
+        #     ('header_id', '=', item_identifier.id),
+        #     ('header_id.entry_no', '=', entry_no),
+        #     ('sequence', '=', sequence)
+        # ], limit=1)
 
-        if line_record:
-            line_record.write({
+        # linerec = request.env['tms.item.identifiers.line'].sudo()
+
+        # if line_record:
+        #     line_record.write({
+        #         'gs1_identifier': gs1_identifier,
+        #         'description': description,
+        #         'data_length': data_length,
+        #     })
+        # else:
+        #     iden = linerec.create({ #request.env['tms.item.identifiers.line'].sudo()
+        #         'header_id': item_identifier.id,
+        #         'sequence': sequence,
+        #         'gs1_identifier': gs1_identifier,
+        #         'description': description,
+        #         'data_length': data_length,
+        #     })
+
+        iden = request.env['tms.item.identifiers.line'].sudo()
+        iden2 = iden.search([('header_id', '=', item_identifier.id),('header_id.entry_no', '=', entry_no),('sequence', '=', sequence)])
+
+        if iden2:
+            iden2.write({
                 'gs1_identifier': gs1_identifier,
                 'description': description,
                 'data_length': data_length,
             })
         else:
-            request.env['tms.item.identifiers.line'].sudo().create({
+            iden2 = iden.create({
                 'header_id': item_identifier.id,
                 'sequence': sequence,
                 'gs1_identifier': gs1_identifier,
@@ -203,11 +226,12 @@ class TmsItemIdentifiers(http.Controller):
 
         return {
             'message': 'Item Identifier Lines processed successfully',
-            'response': 200
+            'response': 200,
+            'Id': iden2.id
         }
     
     @validate_token
-    @http.route('/api/tms_item_identifier_lines/<int:id>', auth='none', methods=['DELETE'], csrf=False, type='http')
+    @http.route('/api/tms_item_identifier_lines/<int:id>', auth='none', methods=['DELETE'], csrf=False, type='json')
     def delete_item_identifiers_line(self, id):
         """
         Create a new Item Identifiers

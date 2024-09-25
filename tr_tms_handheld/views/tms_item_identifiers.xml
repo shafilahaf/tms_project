@@ -6,7 +6,7 @@
       <field name="arch" type="xml">
         <form string="TMS Item Identifiers">
           <header>
-            <!-- <button name="unlink_identifier" string="Delete" type="object" class="oe_highlight" /> -->
+            <button name="create_identifier_line" string="Create Line" type="object" class="oe_highlight" />
           </header>
           <sheet>
             <group>
@@ -46,7 +46,7 @@
             <notebook>
               <page name="line" string="Line">
                 <field name="item_identifiers_line_ids">
-                  <tree editable="bottom">
+                  <tree editable="bottom" create="0">
                     <field name="sequence" />
                     <field name="gs1_identifier" />
                     <field name="data_length" />
@@ -82,6 +82,23 @@
               <field name="sh_product_barcode_mobile" />
               <!-- <field name="blocked" /> -->
         </tree>
+      </field>
+    </record>
+
+    <record id="tms_item_identifiers_line_view_form" model="ir.ui.view">
+      <field name="name">tms.item.identifiers.line.view.form</field>
+      <field name="model">tms.item.identifiers.line</field>
+      <field name="arch" type="xml">
+        <form string="">
+          <sheet>
+            <group>
+              <field name="sequence" />
+              <field name="gs1_identifier" />
+              <field name="description" />
+              <field name="data_length" />
+            </group>
+          </sheet>
+        </form>
       </field>
     </record>
 
