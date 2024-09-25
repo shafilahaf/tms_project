@@ -23,8 +23,8 @@ class TmsItemUoM(http.Controller):
 
         tms_item_uom = request.env['tms.item.uom'].sudo()
 
-        if tms_item_uom.search([('code', '=', code)]):
-            uom = tms_item_uom.search([('code', '=', code)])
+        if tms_item_uom.search([('code', '=', code), ('item_no','=',item_no)]):
+            uom = tms_item_uom.search([('code', '=', code), ('item_no','=',item_no)])
             uom.write({
                 'code': code,
                 'item_no': item_no,

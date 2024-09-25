@@ -6,7 +6,7 @@
         <field name="name">Unit of Measures</field>
         <field name="res_model">tms.unit.of.measures</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': True}</field>
     </record>
 
     <record id="action_tms_items" model="ir.actions.act_window">
@@ -20,7 +20,7 @@
         <field name="name">Items UoM</field>
         <field name="res_model">tms.item.uom</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': True}</field>
     </record>
 
     <record id="action_tms_item_identifiers" model="ir.actions.act_window">
@@ -93,12 +93,12 @@
     <menuitem id="menu_tms_handheld_checkstock" name="Check Stock" parent="menu_tms_handheld" sequence="10"/>
 
     <menuitem id="menu_tms_handheld_master" name="Master Data" parent="menu_tms_handheld" sequence="10"/>
-    <!-- <menuitem id="menu_tms_unit_of_measures" name="Unit of Measures" parent="menu_tms_handheld_master" action="action_tms_unit_of_measures" sequence="10"/> -->
+    <menuitem id="menu_tms_unit_of_measures" name="Unit of Measures" parent="menu_tms_handheld_master" action="action_tms_unit_of_measures" sequence="10"/>
     <menuitem id="menu_tms_items" name="Items" parent="menu_tms_handheld_master" action="action_tms_items" sequence="20"/>
     <menuitem id="menu_tms_item_uom" name="Items UoM" parent="menu_tms_handheld_master" action="action_tms_item_uom" sequence="30"/>
-    <!-- <menuitem id="menu_tms_item_identifiers" name="Items Identifiers" parent="menu_tms_handheld_master" action="action_tms_item_identifiers" sequence="40"/> -->
+    <menuitem id="menu_tms_item_identifiers" name="Items Identifiers" parent="menu_tms_handheld_master" action="action_tms_item_identifiers" sequence="40"/>
     <menuitem id="menu_tms_item_variant" name="Items Variant" parent="menu_tms_handheld_master" action="action_tms_item_variant" sequence="50"/>
-    <!-- <menuitem id="menu_tms_reservation_entry" name="Reservation Entry" parent="menu_tms_handheld_master" action="action_tms_reservation_entry" sequence="60"/> -->
+    <menuitem id="menu_tms_reservation_entry" name="Reservation Entry" parent="menu_tms_handheld_master" action="action_tms_reservation_entry" sequence="60"/>
 
     <menuitem id="menu_tms_handheld_receive" name="Receive" parent="menu_tms_handheld" sequence="20"/>
     <menuitem id="menu_tms_purchase_order" name="Purchase Order" parent="menu_tms_handheld_receive" action="action_tms_purchase_orderss" sequence="10"/>

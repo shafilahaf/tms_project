@@ -26,8 +26,8 @@ class TmsItemIdentifiers(models.Model):
     entry_no = fields.Integer(string="Entry No")
     item_identifiers_line_ids = fields.One2many('tms.item.identifiers.line', 'header_id', string='Item Identifier Line')
     need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")
-    need_sent_to_nav = fields.Boolean(string="Need Sent to NAV")
     from_nav = fields.Boolean(string="From NAV")
+
 
     # SH
     sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)   
@@ -46,25 +46,214 @@ class TmsItemIdentifiers(models.Model):
             )])
             item_uom_array = []
             for itemuom in item_uom:
-                item_uom_array.append(itemuom.id)
+                item_uom_array.append(itemuom.code)
 
-            return {'domain': {'unit_of_measure_code': [('id', 'in', item_uom_array)]}}
+            return {'domain': {'unit_of_measure_code': [('code', 'in', item_uom_array)]}}
         else:
             return {'domain': {'unit_of_measure_code': []}}
     
-    def create(self):
-        if self.from_nav == False:
-            self.need_sent_to_nav = True
+    @api.model
+    def create(self, vals):
+        if self._context.get('from_odoo'):
+            self.create_item_identifiers(vals)
+        
+        record = super(TmsItemIdentifiers, self).create(vals)
+        return record
 
-    def write(self):
-        if self.from_nav == False:
-            self.need_sent_to_nav = True
+    def write(self, vals):
+        for record in self:
+            if self._context.get('from_odoo'):
+                self.create_item_identifiers(vals)
 
+        
+        res = super(TmsItemIdentifiers, self).write(vals)
+        return res
+    
     def unlink(self):
-        if self.from_nav == False:
-            self.delete_item_identifier(self.retrieve_etag(self.entry_no), self.entry_no)
+        for record in self:
+            if self._context.get('from_odoo'):
+                self.delete_item_identifier(self.retrieve_etag(self.entry_no), self.entry_no)
         # Proceed with the standard unlink process
         return super(TmsItemIdentifiers, self).unlink()
+
+    # SENd API to NAV
+    def retrieve_etag(self, entryno):
+        current_company = self.env.user.company_id
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Entry_No={int(entryno)})?$format=json'
+        
+        headers = {'Content-Type': 'application/json'}
+        
+        username = current_company.username_api
+        password = current_company.password_api
+        
+        try:
+            auth = HttpNtlmAuth(username, password)
+            response = requests.get(url, headers=headers, auth=auth)
+            # # response.raise_for_status()  # Raise an HTTPError for bad responses
+            
+            # Retrieve etag from response headers
+            etag = response.headers.get('ETag')
+            if not etag:
+                _logger.error("ETag not found in response headers")
+                raise UserError("ETag not found in response headers")
+
+            return etag
+
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"HTTP error occurred: {e}")
+            raise UserError(f"HTTP error occurred: {e}")
+        except ValueError as e:
+            _logger.error(f"JSON decode error: {e}")
+            _logger.error(f"Response content: {response.text}")
+            raise UserError(f"JSON decode error: {e}")
+        
+    def create_item_identifiers(self, vals):
+       
+        # Retrieve etag from response headers
+        if self.entry_no == 0:
+            self.post_item_identifier(vals)
+        else:
+            self.update_item_identifier(vals, self.entry_no)
+
+    
+    def update_item_identifier(self, vals, entryno):
+        etag = self.retrieve_etag(entryno)
+        current_company = self.env.user.company_id
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Entry_No={int(self.entry_no)})?$format=json'
+        headers = {'Content-Type': 'application/json', 'If-Match': etag}
+
+        username = current_company.username_api
+        password = current_company.password_api
+
+        if 'variant_code' in vals:
+            varcode = vals['variant_code'] if vals['variant_code'] else ""
+        else:
+            varcode = self.variant_code if self.variant_code else ""
+        
+        if 'sh_product_barcode_mobile' in vals:
+            barcode =  vals['sh_product_barcode_mobile']
+        else:
+            barcode = self.sh_product_barcode_mobile
+            
+        if 'unit_of_measure_code' in vals:
+            uom_code = self.env['tms.unit.of.measures'].search([(
+                'id','=', vals['unit_of_measure_code']
+            )]).code
+        else:
+            uom_code = self.unit_of_measure_code.code
+            
+        if 'barcode_type' in vals:
+            bartype = vals['barcode_type']
+        else:
+            bartype = self.barcode_type
+
+       
+        data = {
+             'Variant_Code': varcode,
+             "Barcode_Code":barcode,
+             'Unit_Of_Measure_Code': uom_code,
+             "Barcode_Type": bartype,
+             "Need_Sent_to_WMS": False,
+        }
+
+        try:
+            auth = HttpNtlmAuth(username, password)
+            response = requests.patch(url, headers=headers, auth=auth, json=data)
+            # # response.raise_for_status()  # Raise an HTTPError for bad responses
+            _logger.debug(f"Response Status Code: {response.status_code}")
+            _logger.debug(f"Response Headers: {response.headers}")
+            _logger.debug(f"Response Content: {response.content}")
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"HTTP error occurred: {e}")
+            raise UserError(f"HTTP error occurred: {e}")
+        except ValueError as e:
+            _logger.error(f"JSON decode error: {e}")
+            _logger.error(f"Response content: {response.text}")
+            raise UserError(f"JSON decode error: {e}")
+
+    def post_item_identifier(self, vals):
+        current_company = self.env.user.company_id
+        url2 = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes?$format=json'
+        headers = {'Content-Type': 'application/json'}
+
+        username = current_company.username_api
+        password = current_company.password_api
+        
+        auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
+
+
+        if 'item_no' in vals:
+            item_no = vals['item_no'] if vals['item_no'] else ""
+        else:
+            item_no = self.item_no if self.item_no else ""
+        
+        if 'variant_code' in vals:
+            varcode = vals['variant_code'] if vals['variant_code'] else ""
+        else:
+            varcode = self.variant_code if self.variant_code else ""
+        
+        if 'sh_product_barcode_mobile' in vals:
+            barcode =  vals['sh_product_barcode_mobile']
+        else:
+            barcode = self.sh_product_barcode_mobile
+            
+        if 'unit_of_measure_code' in vals:
+            uom_code = self.env['tms.unit.of.measures'].search([(
+                'id','=', vals['unit_of_measure_code']
+            )]).code
+        else:
+            uom_code = self.unit_of_measure_code.code
+            
+        if 'barcode_type' in vals:
+            bartype = vals['barcode_type']
+        else:
+            bartype = self.barcode_type
+
+
+        uom = self.env['tms.unit.of.measures'].search([(
+            'id','=', self.unit_of_measure_code.id
+        )])
+
+        item = self.env['tms.item'].search([(
+            'id','=', item_no
+        )])
+
+        # data2 = {
+        #      'Item_No': item.no,
+        #      'Variant_Code': self.variant_code if self.variant_code else "",
+        #      "Barcode_Code": self.sh_product_barcode_mobile,
+        #      'Unit_Of_Measure_Code': uom.code,
+        #      "Barcode_Type": self.barcode_type,
+        #      "Need_Sent_to_WMS": False,
+        # }
+
+        data2 = {
+             'Item_No': item.no,
+             'Variant_Code': varcode,
+             "Barcode_Code":barcode,
+             'Unit_Of_Measure_Code': uom_code,
+             "Barcode_Type": bartype,
+             "Need_Sent_to_WMS": False,
+        }
+        try:
+            response = requests.post(url2, headers=headers, auth=auth, json=data2)
+            # # response.raise_for_status()
+
+            response_json = response.json()
+            entry_no = response_json.get("Entry_No")
+
+            if entry_no:
+                vals['entry_no'] = entry_no
+
+            return vals
+        except requests.exceptions.HTTPError as e:
+            try:
+                root = ET.fromstring(response.text)
+                error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
+            except ET.ParseError:
+                error_message = response.text  # Fallback to the full response text if XML parsing fails
+            _logger.error(f"HTTP error occurred while create item idenfirers: {error_message}")
+            raise UserError(error_message)
     
     def delete_item_identifier(self, etag, entryno):
         current_company = self.env.user.company_id
@@ -87,7 +276,7 @@ class TmsItemIdentifiers(models.Model):
             _logger.error(f"JSON decode error: {e}")
             _logger.error(f"Response content: {response.text}")
             raise UserError(f"JSON decode error: {e}")
-
+    # SENd API to NAV
 
 
 class TMSItemIdentifierLine(models.Model):
@@ -118,8 +307,25 @@ class TMSItemIdentifierLine(models.Model):
             if record.sequence == 0:
                 raise ValidationError(_("Sequence cannot be 0. Please assign a valid sequence number."))
 
+     # Line
+    @api.model
+    def create(self, vals):
+        if self._context.get('from_odoo'):
+            self.create_item_identifiers_line(vals)
+        
+        record = super(TMSItemIdentifierLine, self).create(vals)
+        return record
+
+   
+    def write(self, vals):
+        for record in self:
+            if self._context.get('from_odoo'):
+                self.create_item_identifiers_line(vals)
+        res = super(TMSItemIdentifierLine, self).write(vals)
+        return res
+    
     def unlink(self):
-        if self.from_nav == False:
+        if self._context.get('from_odoo'):
             self.delete_item_line_identifier(self.retrieve_line_etag(self.header_id.entry_no, self.sequence), self.header_id.entry_no,self.sequence)
         return super(TMSItemIdentifierLine, self).unlink()
 
@@ -145,4 +351,157 @@ class TMSItemIdentifierLine(models.Model):
             _logger.error(f"Response content: {response.text}")
             raise UserError(f"JSON decode error: {e}")
         
+    def retrieve_line_etag(self, entryno, sequence):
+        current_company = self.env.user.company_id
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(entryno)},Sequence={int(sequence)})?$format=json'
+        
+        headers = {'Content-Type': 'application/json'}
+        username = current_company.username_api
+        password = current_company.password_api
+        
+        try:
+            auth = HttpNtlmAuth(username, password)
+            response = requests.get(url, headers=headers, auth=auth)
+            
+            if response.status_code == 200:
+                # Retrieve etag from response headers
+                etag = response.headers.get('ETag')
+                if not etag:
+                    _logger.error("ETag not found in response headers")
+                    raise UserError("ETag not found in response headers")
+                return etag
+            else:
+                _logger.error(f"Failed to retrieve ETag for entry_no {entryno} and sequence {sequence}. Status: {response.status_code}, Response: {response.text}")
+                raise UserError(f"Failed to retrieve ETag: Status {response.status_code}")
+
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"HTTP error occurred: {e}")
+            raise UserError(f"HTTP error occurred: {e}")
+        except ValueError as e:
+            _logger.error(f"JSON decode error: {e}")
+            _logger.error(f"Response content: {response.text}")
+            raise UserError(f"JSON decode error: {e}")
+
+        
+    def create_item_identifiers_line(self, vals):
+       
+        
+        # Retrieve etag from response headers
+        if self.id == False:
+            self.post_item_identifier_line(vals)
+        else:
+            self.update_item_identifier_line(vals)
+
     
+    def update_item_identifier_line(self, vals):
+      
+        
+        header = self.env['tms.item.identifiers'].search([
+            ('item_identifiers_line_ids', '=', self._origin.id)
+        ])
+       
+        if 'sequence' in vals:
+            sequence = vals['sequence'] if vals['sequence'] else ""
+        else:
+            sequence = self.sequence if self.sequence else ""
+        
+        if 'gs1_identifier' in vals:
+            gs1_identifier = vals['gs1_identifier'] if vals['gs1_identifier'] else ""
+        else:
+            gs1_identifier = self.gs1_identifier if self.gs1_identifier else ""
+        
+        if 'description' in vals:
+            description =  vals['description']
+        else:
+            description = self.description
+            
+        if 'data_length' in vals:
+            data_length =  vals['data_length']
+        else:
+            data_length = self.data_length
+        etag = self.retrieve_line_etag(header.entry_no, sequence)
+        current_company = self.env.user.company_id
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail(Source_Entry_No={int(header.entry_no)}, Sequence={sequence})?$format=json'
+        headers = {'Content-Type': 'application/json', 'If-Match': etag}
+
+        username = current_company.username_api
+        password = current_company.password_api
+
+        data = {
+             "GS1_Identifier":gs1_identifier,
+             'Description': description,
+             "Data_Length": data_length,
+             "Need_Sent_to_WMS": False,
+        }
+
+        try:
+            auth = HttpNtlmAuth(username, password)
+            response = requests.patch(url, headers=headers, auth=auth, json=data)
+            # # response.raise_for_status()  # Raise an HTTPError for bad responses
+            _logger.debug(f"Response Status Code: {response.status_code}")
+            _logger.debug(f"Response Headers: {response.headers}")
+            _logger.debug(f"Response Content: {response.content}")
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"HTTP error occurred: {e}")
+            raise UserError(f"HTTP error occurred: {e}")
+        except ValueError as e:
+            _logger.error(f"JSON decode error: {e}")
+            _logger.error(f"Response content: {response.text}")
+            raise UserError(f"JSON decode error: {e}")
+
+    def post_item_identifier_line(self, vals):
+        current_company = self.env.user.company_id
+        url2 = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodesDetail?$format=json'
+        headers = {'Content-Type': 'application/json'}
+
+        username = current_company.username_api
+        password = current_company.password_api
+        
+        auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
+
+
+        if 'sequence' in vals:
+            sequence = vals['sequence'] if vals['sequence'] else ""
+        else:
+            sequence = self.sequence if self.sequence else ""
+        
+        if 'gs1_identifier' in vals:
+            gs1_identifier = vals['gs1_identifier'] if vals['gs1_identifier'] else ""
+        else:
+            gs1_identifier = self.gs1_identifier if self.gs1_identifier else ""
+        
+        if 'description' in vals:
+            description =  vals['description']
+        else:
+            description = self.description
+            
+        if 'data_length' in vals:
+            data_length =  vals['data_length']
+        else:
+            data_length = self.data_length
+        
+        header = self.env['tms.item.identifiers'].search([
+            ('id', '=', vals['header_id'])
+        ])
+        
+        data2 = {
+             'Source_Entry_No': header.entry_no,
+             'Sequence': sequence,
+             "GS1_Identifier":gs1_identifier,
+             'Description': description,
+             "Data_Length": data_length,
+             "Need_Sent_to_WMS": False,
+        }
+        try:
+            response = requests.post(url2, headers=headers, auth=auth, json=data2)
+            # # response.raise_for_status()
+
+            response_json = response.json()
+        except requests.exceptions.HTTPError as e:
+            try:
+                root = ET.fromstring(response.text)
+                error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
+            except ET.ParseError:
+                error_message = response.text  # Fallback to the full response text if XML parsing fails
+            _logger.error(f"HTTP error occurred while create item idenfirers: {error_message}")
+            raise UserError(error_message)

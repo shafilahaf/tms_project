@@ -15,5 +15,16 @@
         </form>
       </field>
     </record>
+
+    <record id="view_tms_item_uom_tree" model="ir.ui.view">
+      <field name="name">tms.item.uom.tree</field>
+      <field name="model">tms.item.uom</field>
+      <field name="arch" type="xml">
+        <tree string="">
+          <field name="item_no" />
+          <field name="code" />
+        </tree>
+      </field>
+    </record>
   </data>
 </odoo>

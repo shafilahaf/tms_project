@@ -27,50 +27,50 @@ def validate_token(func):
     return wrap
 
 class TmsItemIdentifiers(http.Controller):
-    @validate_token
-    @http.route('/api/tms_item_identifiers', auth='none', methods=['GET'], csrf=False, type='http')
-    def get_item_identifier(self,**kw):
-        # data = request.jsonrequest
-        # tms_item_identifiers = request.env['tms.item.identifiers'].sudo()
-        # item_identifier = request.env['tms.item.identifiers'].sudo().search([('header_id', '=', tms_item_identifiers.id)], limit=1)
+    # @validate_token
+    # @http.route('/api/tms_item_identifiers', auth='none', methods=['GET'], csrf=False, type='http')
+    # def get_item_identifier(self,**kw):
+    #     # data = request.jsonrequest
+    #     # tms_item_identifiers = request.env['tms.item.identifiers'].sudo()
+    #     # item_identifier = request.env['tms.item.identifiers'].sudo().search([('header_id', '=', tms_item_identifiers.id)], limit=1)
 
-        items = request.env['tms.item.identifiers'].sudo().search([(
-            'need_sent_to_nav', '=', True
-        )])
-        items_data = []
-        for item in items:
-            items_data.append({
-                'id': item.id,
-                'item_no': item.item_no.no,
-                'variant_code': item.variant_code.code,
-                'unit_of_measure_code': item.unit_of_measure_code.code,
-                'barcode_type': item.barcode_type,
-                'sh_product_barcode_mobile': item.sh_product_barcode_mobile
+    #     items = request.env['tms.item.identifiers'].sudo().search([(
+    #         'self.entry_no', '=', True
+    #     )])
+    #     items_data = []
+    #     for item in items:
+    #         items_data.append({
+    #             'id': item.id,
+    #             'item_no': item.item_no.no,
+    #             'variant_code': item.variant_code.code,
+    #             'unit_of_measure_code': item.unit_of_measure_code.code,
+    #             'barcode_type': item.barcode_type,
+    #             'sh_product_barcode_mobile': item.sh_product_barcode_mobile
 
-            })
-        return json.dumps({'status': 'success', 'data': items_data})
+    #         })
+    #     return json.dumps({'status': 'success', 'data': items_data})
     
-    @validate_token
-    @http.route('/api/tms_item_identifier_lines', auth='none', methods=['GET'], csrf=False, type='http')
-    def get_item_line_identifier(self,**kw):
-        # data = request.jsonrequest
-        # tms_item_identifiers = request.env['tms.item.identifiers'].sudo()
-        # item_identifier = request.env['tms.item.identifiers'].sudo().search([('header_id', '=', tms_item_identifiers.id)], limit=1)
+    # @validate_token
+    # @http.route('/api/tms_item_identifier_lines', auth='none', methods=['GET'], csrf=False, type='http')
+    # def get_item_line_identifier(self,**kw):
+    #     # data = request.jsonrequest
+    #     # tms_item_identifiers = request.env['tms.item.identifiers'].sudo()
+    #     # item_identifier = request.env['tms.item.identifiers'].sudo().search([('header_id', '=', tms_item_identifiers.id)], limit=1)
 
-        items = request.env['tms.item.identifiers.line'].sudo().search([(
-            'need_sent_to_nav', '=', True
-        )])
-        items_data = []
-        for item in items:
-            items_data.append({
-                'id': item.id,
-                'entry_no': item.header_id.entry_no,
-                'sequence': item.sequence,
-                'gs1_identifier': item.gs1_identifier,
-                'description': item.description,
-                'data_length': item.data_length,
-            })
-        return json.dumps({'status': 'success', 'data': items_data})
+    #     items = request.env['tms.item.identifiers.line'].sudo().search([(
+    #         'need_sent_to_nav', '=', True
+    #     )])
+    #     items_data = []
+    #     for item in items:
+    #         items_data.append({
+    #             'id': item.id,
+    #             'entry_no': item.header_id.entry_no,
+    #             'sequence': item.sequence,
+    #             'gs1_identifier': item.gs1_identifier,
+    #             'description': item.description,
+    #             'data_length': item.data_length,
+    #         })
+    #     return json.dumps({'status': 'success', 'data': items_data})
 
     @validate_token
     @http.route('/api/tms_item_identifiers', auth='none', methods=['POST'], csrf=False, type='json')
@@ -81,28 +81,41 @@ class TmsItemIdentifiers(http.Controller):
         data = request.jsonrequest
         item_no = data.get('Item_No')
         variant_code = data.get('Variant_Code')
-        unit_of_measure_code = data.get('Unit_Of_Measure_Code')
+        unit_of_measure_code = data.get('Unit_of_measure_code')
         barcode_type = data.get('Barcode_Type')
         barcode_code = data.get('Barcode_Code')
         entry_no = data.get('Entry_No')
 
         tms_item_identifiers = request.env['tms.item.identifiers'].sudo()
-        tms_uom_model = request.env['tms.unit.of.measures'].sudo()
+        tms_uom_model = request.env['tms.item.uom'].sudo()
+        uom = request.env['tms.unit.of.measures'].sudo()
         item = request.env['tms.item'].sudo()
 
-        uom_record = tms_uom_model.search([('code', '=', unit_of_measure_code)], limit=1)
+        item_variant = request.env['tms.item.variant'].sudo()
+
+        item_var = item_variant.search([('item_no', '=', item_no), ('code', '=', variant_code)])
+
+        item_uom = tms_uom_model.search([('code', '=', unit_of_measure_code), ('item_no','=',item_no)], limit=1)
+        if item_uom == False:
+            return {
+                'error': "UoM not Found.",
+                'response': 500
+            }
+        else:
+            uom = uom.search([('code', '=', unit_of_measure_code)])
         item_record = item.search([('no', '=', item_no)], limit=1)
+
+
 
         if tms_item_identifiers.search([('entry_no', '=', entry_no)]):
             item_identifier = tms_item_identifiers.search([('entry_no', '=', entry_no)])
             item_identifier.write({
                 'item_no': item_record.id,
-                'variant_code': variant_code,
-                'unit_of_measure_code': uom_record.id,
+                'variant_code': item_var.id if variant_code else False,
+                'unit_of_measure_code': uom.id,
                 'barcode_type': barcode_type,
-                'sh_product_barcode_mobile': barcode_code,
-                'entry_no': entry_no,
-                'need_sent_to_nav': False,
+                'sh_product_barcode_mobile':  str(barcode_code),
+                'entry_no':int(entry_no),
             })
             return {
                 'message': 'Item Identifiers updated successfully',
@@ -111,12 +124,11 @@ class TmsItemIdentifiers(http.Controller):
         try:
             tms_item_identifiers.create({
                 'item_no': item_record.id,
-                'variant_code': variant_code,
-                'unit_of_measure_code': uom_record.id,
+                'variant_code': item_var.id if variant_code else False,
+                'unit_of_measure_code': uom.id,
                 'barcode_type': barcode_type,
-                'sh_product_barcode_mobile': barcode_code,
-                'entry_no': entry_no,
-                'need_sent_to_nav': False,
+                'sh_product_barcode_mobile': str(barcode_code),
+                'entry_no': int(entry_no),
             })
             return {
                 'message': 'Item Identifiers created successfully',

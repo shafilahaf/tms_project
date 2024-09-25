@@ -6,7 +6,7 @@
       <field name="arch" type="xml">
         <form string="TMS Item Identifiers">
           <header>
-            <button name="unlink_identifier" string="Delete" type="object" class="oe_highlight" />
+            <!-- <button name="unlink_identifier" string="Delete" type="object" class="oe_highlight" /> -->
           </header>
           <sheet>
             <group>
@@ -41,7 +41,7 @@
                     </div>
                 </section>
               <field name="entry_no" invisible="0"/>
-              <field name="need_sent_to_nav" />
+              <!-- <field name="need_sent_to_nav" /> -->
             </group>
             <notebook>
               <page name="line" string="Line">
@@ -80,7 +80,7 @@
               <field name="unit_of_measure_code"/>
               <field name="barcode_type" />
               <field name="sh_product_barcode_mobile" />
-              <field name="blocked" />
+              <!-- <field name="blocked" /> -->
         </tree>
       </field>
     </record>

@@ -60,8 +60,9 @@ class TmsItem(models.Model):
             'target': 'current',
             'context': {
                 'default_item_no': self.id,
-                'default_unit_of_measure_code': default_uom_code.id,
-                'create': True, 'edit': True, 'delete': True
+                # 'default_unit_of_measure_code': default_uom_code.id,
+                'create': True, 'edit': True, 'delete': True,
+                'from_odoo': True,
             },
             'domain': [('item_no', '=', self.id)]
         }
