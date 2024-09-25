@@ -6,7 +6,7 @@
       <field name="arch" type="xml">
         <form string="TMS Item Identifiers">
           <header>
-            <!-- <button name="unlink_identifier" string="Delete" type="object" class="oe_highlight" /> -->
+            <button name="unlink_identifier" string="Delete" type="object" class="oe_highlight" />
           </header>
           <sheet>
             <group>
@@ -90,6 +90,16 @@
         <field name="model_id" ref="model_tms_item_identifiers_line"/>
         <field name="state">code</field>
         <field name="code">model.post_patch_item_identifiers_to_api()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+        <field name="active">True</field>
+    </record>
+
+    <record id="ir_cron_post_item_identifiers_to_nav_header" model="ir.cron">
+        <field name="name">Post Item Identifiers Line to NAV Header</field>
+        <field name="model_id" ref="model_tms_item_identifiers"/>
+        <field name="state">code</field>
+        <field name="code">model.post_patch_item_identifiers_to_api_header()</field>
         <field name="interval_number">1</field>
         <field name="interval_type">minutes</field>
         <field name="active">True</field>

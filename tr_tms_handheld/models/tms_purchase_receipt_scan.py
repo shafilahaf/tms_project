@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 import re
 from datetime import datetime
@@ -32,62 +32,51 @@ class TMSPurchaseReceiptScanItem(models.Model):
     @api.onchange('sh_product_barcode_mobile')
     def _onchange_sh_product_barcode_mobile(self):
         if self.sh_product_barcode_mobile:
-            # self.parse_barcode_and_update_fields(self.sh_product_barcode_mobile, self.item_no)
-            if self.sh_product_barcode_mobile:
-                item_barcode = self.env['tms.item.identifiers'].search([
-                    ('barcode_code','=',self.barcode_code),
-                ])
-                if item_barcode:
-                    self.item_no = item_barcode.item_no.id
-                    self.parse_barcode_and_update_fields(self.sh_product_barcode_mobile, item_barcode.item_no)
-                else:
-                    parsed_barcode = self.parse_gs1_128_barcode(self.sh_product_barcode_mobile)
-                    item_barcodes = self.env['tms.item.identifiers'].search([
-                        ('barcode_code','=', parsed_barcode),
-                    ])
-                    if item_barcodes:
-                        self.item_no = item_barcodes.item_no.id
-                    self.parse_barcode_and_update_fields(parsed_barcode, self.item_no)
+            self.parse_gs1_128_barcode(self.sh_product_barcode_mobile)
 
 
     def parse_gs1_128_barcode(self, barcode):
-        if barcode[:2] == "01":
-            digit_first_14 = barcode[2:16] 
-            new_barcode = digit_first_14
+        barcode_2 = barcode
+        if barcode_2[:2] == "01":
+            digit_first_14 = barcode_2[2:16] 
+            digit_2 = barcode_2[:2]
         else:
-            new_barcode = barcode  # If not GS1-128, return the original barcode
+            digit_first_14 = barcode_2
+
+        if digit_first_14:
+            item_barcodes = self.env['tms.item.identifiers'].search([
+                ('sh_product_barcode_mobile','=', digit_first_14),
+            ])
+            if item_barcodes:
+                self.item_no = item_barcodes.item_no.id
+
+        barcode_2 = barcode_2.replace(digit_2+digit_first_14, '')
+
+
+        if barcode_2:
+            identifier_obj = self.env['tms.item.identifiers'].search([('item_no', '=', self.item_no.id), ('sh_product_barcode_mobile', '=', digit_first_14)], limit=1) # digit_2+
         
-        return new_barcode
+            while barcode_2:
+                if identifier_obj:
+                    iden_line = self.env['tms.item.identifiers.line'].search([
+                        ('header_id', '=', identifier_obj.id)
+                    ])
+                    for line in iden_line:
+                        digit_first_2 = barcode_2[:2]
+                        if digit_first_2 == line.gs1_identifier:
+                            barcode_3 = barcode_2[2:iden_line.data_length]
+                            if digit_first_2 == '10' or digit_first_2 == '23':
+                                self.lot_number = barcode_3
+                            elif digit_first_2== '21':
+                                self.serial_number = barcode_3
+                            elif digit_first_2 == '17':
+                                self.exp_date = self.parse_exp_date(barcode_3)
+                            elif digit_first_2 == '30':
+                                self.quantity = int(barcode_3)
 
-
-    def parse_barcode_and_update_fields(self, barcode, item_no):
-        """Parse the barcode based on item identifier lines and update corresponding fields."""
-        identifier_obj = self.env['tms.item.identifiers'].search([('item_no', '=', item_no.id)], limit=1)
-        if not identifier_obj:
-            raise ValidationError("No item identifier found for this item.")
-
-        # Initialize parsing position
-        current_position = 0
-        
-        # Fetch identifier lines in sequence
-        for line in identifier_obj.item_identifiers_line_ids:
-            # Get the identifier and data length
-            identifier_length = line.data_length
-            gs1_identifier = line.gs1_identifier
-            
-            # Extract the segment matching the GS1 identifier
-            if barcode[current_position:current_position+len(gs1_identifier)] == gs1_identifier:
-                extracted_value = barcode[current_position + len(gs1_identifier):current_position + identifier_length]
-
-                # Based on description, update the corresponding field
-                if line.gs1_identifier == 10 or line.gs1_identifier == 23:
-                    self.lot_number = extracted_value
-                elif line.gs1_identifier == 21:
-                    self.serial_number = extracted_value
-                elif line.gs1_identifier == 17:
-                    self.exp_date = self.parse_exp_date(extracted_value)
-
-                current_position += identifier_length
+                            barcode_2 = barcode_2.replace(digit_first_2+barcode_3, '')
+                        else:
+                            barcode_2 = ''
 
     def parse_exp_date(self, date_str):
         """Parse expiration date from barcode to a date object (assuming YYMMDD format)."""
@@ -96,6 +85,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
             return exp_date
         except ValueError:
             raise ValidationError("Invalid expiration date format in barcode.")
+
     #barcode
 
     
