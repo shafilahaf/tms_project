@@ -27,6 +27,7 @@ class TmsItem(http.Controller):
         item_tracking_code = data.get('Item_Tracking_Code')
         division_code = data.get('Division Code')
         barcode = data.get('Barcode')
+        hh_id = data.get('HH Id')
 
         # Extracting tracking flags
         tracking_flags = {
@@ -62,7 +63,7 @@ class TmsItem(http.Controller):
             }
 
         tms_item = request.env['tms.item'].sudo()
-        existing_item = tms_item.search([('no', '=', no)])
+        existing_item = tms_item.search([('id', '=', hh_id)])
 
         try:
             if not item_tracking_code:
@@ -90,7 +91,8 @@ class TmsItem(http.Controller):
                 })
                 return {
                     'message': 'Item updated successfully',
-                    'response': 200
+                    'response': 200,
+                    'Id': existing_item.id
                 }
             else:
                 tms_item.create({
@@ -110,9 +112,11 @@ class TmsItem(http.Controller):
                     'barcode': barcode,
                     **tracking_flags
                 })
+                existing_item = tms_item.search([('no', '=', no)])
                 return {
                     'message': 'Item created successfully',
-                    'response': 200
+                    'response': 200,
+                    'Id': existing_item.id
                 }
         except Exception as e:
             _logger.error("Error creating/updating Item: %s", e)

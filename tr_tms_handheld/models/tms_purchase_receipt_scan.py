@@ -59,12 +59,12 @@ class TMSPurchaseReceiptScanItem(models.Model):
             while barcode_2:
                 if identifier_obj:
                     iden_line = self.env['tms.item.identifiers.line'].search([
-                        ('header_id', '=', identifier_obj.id)
-                    ])
+                        ('header_id', '=', identifier_obj.id),
+                    ],order="sequence asc")
                     for line in iden_line:
                         digit_first_2 = barcode_2[:2]
                         if digit_first_2 == line.gs1_identifier:
-                            barcode_3 = barcode_2[2:iden_line.data_length]
+                            barcode_3 = barcode_2[2:line.data_length]
                             if digit_first_2 == '10' or digit_first_2 == '23':
                                 self.lot_number = barcode_3
                             elif digit_first_2== '21':

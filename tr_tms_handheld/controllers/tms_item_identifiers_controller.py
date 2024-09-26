@@ -103,8 +103,14 @@ class TmsItemIdentifiers(http.Controller):
             }
         else:
             uom = uom.search([('code', '=', unit_of_measure_code)])
-        item_record = item.search([('no', '=', item_no)], limit=1)
 
+
+        item_record = item.search([('no', '=', item_no)], limit=1)
+        if item_record.id == False:
+            return {
+                'error': "Item not Found.",
+                'response': 500,
+            }
 
 
         if tms_item_identifiers.search([('entry_no', '=', entry_no)]):
@@ -131,6 +137,7 @@ class TmsItemIdentifiers(http.Controller):
                 'sh_product_barcode_mobile': str(barcode_code),
                 'entry_no': int(entry_no),
             })
+            item_identifier = tms_item_identifiers.search([('entry_no', '=', entry_no)])
             return {
                 'message': 'Item Identifiers created successfully',
                 'response': 200,
@@ -152,11 +159,19 @@ class TmsItemIdentifiers(http.Controller):
 
         tms_item_identifiers = request.env['tms.item.identifiers'].sudo().browse(id)
         if not tms_item_identifiers.exists():
-            return json.dumps({'status': 'error', 'message': 'Record not found'})
+            return {
+            'message': 'Item Identifiers Not Found',
+            'response': 404,
+            }
+            #return json.dumps({'status': 'error', 'message': 'Record not found'})
 
         tms_item_identifiers.from_nav = True
         tms_item_identifiers.sudo().unlink()
-        return json.dumps({'status': 'success', 'message': 'Record deleted'})
+        return {
+        'message': 'Item Identifiers has been deleted',
+        'response': 200,
+        }
+        #return json.dumps({'status': 'success', 'message': 'Record deleted'})
     
     @validate_token
     @http.route('/api/tms_item_identifier_lines', auth='none', methods=['POST'], csrf=False, type='json')
@@ -223,7 +238,7 @@ class TmsItemIdentifiers(http.Controller):
                 'description': description,
                 'data_length': data_length,
             })
-
+            iden2 = iden.search([('header_id', '=', item_identifier.id),('header_id.entry_no', '=', entry_no),('sequence', '=', sequence)])
         return {
             'message': 'Item Identifier Lines processed successfully',
             'response': 200,
@@ -239,8 +254,16 @@ class TmsItemIdentifiers(http.Controller):
 
         tms_item_identifiers = request.env['tms.item.identifiers.line'].sudo().browse(id)
         if not tms_item_identifiers.exists():
-            return json.dumps({'status': 'error', 'message': 'Record not found'})
+            return {
+                'message': 'Item Identifiers Lines Not Found',
+                'response': 404,
+            }
+            #return json.dumps({'status': 'error', 'message': 'Record not found'})
 
         tms_item_identifiers.from_nav = True
         tms_item_identifiers.sudo().unlink()
-        return json.dumps({'status': 'success', 'message': 'Record deleted'})
+        return {
+            'message': 'Item Identifiers Lines has Been Deleted',
+            'response': 200,
+        }
+        #return json.dumps({'status': 'success', 'message': 'Record deleted'})

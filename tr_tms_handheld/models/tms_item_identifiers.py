@@ -74,7 +74,6 @@ class TmsItemIdentifiers(models.Model):
         if self._context.get('from_odoo'):
             self.create_item_identifiers(vals, record)
 
-        
         return record
 
 
@@ -89,7 +88,7 @@ class TmsItemIdentifiers(models.Model):
     def unlink(self):
         for record in self:
             if self._context.get('from_odoo'):
-                etag = self.retrieve_etag(self.entry_no)
+                etag = self.retrieve_etag(self.item_no.no,self.entry_no)
                 if etag:
                     self.delete_item_identifier(etag, self.entry_no)
         # Proceed with the standard unlink process
@@ -257,6 +256,8 @@ class TmsItemIdentifiers(models.Model):
             if entry_no:
                 rec.entry_no = entry_no
                 self.entry_no = entry_no
+            else :
+                 raise ValidationError("Data Error, validation on nav")
 
             # return vals
         except requests.exceptions.HTTPError as e:
@@ -270,7 +271,7 @@ class TmsItemIdentifiers(models.Model):
     
     def delete_item_identifier(self, etag, entryno):
         current_company = self.env.user.company_id
-        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Entry_No={int(entryno)})?$format=json'
+        url = f'http://{current_company.ip_or_url_api}:{current_company.port_api}/Thomasong/OData/Company(\'{current_company.name}\')/ItemBarcodes(Item_No=\'{self.item_no.no}\',Entry_No={int(entryno)})?$format=json'
         headers = {'Content-Type': 'application/json', 'If-Match': etag}
 
         username = current_company.username_api
