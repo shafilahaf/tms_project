@@ -61,6 +61,9 @@ class TMSPurchaseReceiptScanItem(models.Model):
                     iden_line = self.env['tms.item.identifiers.line'].search([
                         ('header_id', '=', identifier_obj.id),
                     ],order="sequence asc")
+                    if not iden_line:
+                        break
+
                     for line in iden_line:
                         digit_first_2 = barcode_2[:2]
                         if digit_first_2 == line.gs1_identifier:
@@ -150,6 +153,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
         self.quantity = False
         self.barcode_code = False
         self.reservation_entry_ids = [(5, 0, 0)]  # Clear the One2many field
+        self.sh_product_barcode_mobile = ''
     
     # V2
     def submit_purchase_receipt_line(self):
@@ -301,6 +305,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
         self.serial_number = ''  # Clear after adding
         self.barcode_code = ''
         self.exp_date = ''
+        self.sh_product_barcode_mobile = ''
 
     def _create_lot_reservation_entry(self):
         existing_entry = self.reservation_entry_ids.filtered(
@@ -330,3 +335,4 @@ class TMSPurchaseReceiptScanItem(models.Model):
         self.quantity = ''
         self.barcode_code = ''
         self.exp_date = ''
+        self.sh_product_barcode_mobile = ''

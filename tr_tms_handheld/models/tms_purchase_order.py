@@ -65,6 +65,13 @@ class TmsPurchaseOrderHeader(models.Model):
         }
 
     def receipt_po(self):
+        # empty_receipts = self.env['tms.purchase.receipt.header'].create({
+        #     ('source_doc_no', '=', self.no),
+        #     ('receipt_line_ids', '=', False)
+        # })
+        # if empty_receipts:
+        #     empty_receipts.unlink()
+            
         action = self.env.ref('tr_tms_handheld.action_receipt_po').read()[0]
         action['domain'] = [('source_doc_no', '=', self.no)]
         return action

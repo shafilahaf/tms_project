@@ -14,28 +14,22 @@ class TmsItemIdentifiers(models.Model):
     _description = 'TMS Item Identifiers'
     _rec_name = 'item_no'
 
-    item_no = fields.Many2one('tms.item', string='Item')
+    item_no = fields.Many2one('tms.item', string='Item', store=True)
     variant_code = fields.Many2one('tms.item.variant', string='Variant Code', domain="[('item_no', '=', item_no)]", store=True)
-    unit_of_measure_code = fields.Many2one('tms.unit.of.measures', string='Unit of Measures', store=True)
+    unit_of_measure_code = fields.Many2one('tms.unit.of.measures', string='Unit of Measures', store=True, required=True)
     barcode_type = fields.Selection([
         ('1', 'GSI 128'),
-        ('2','Code 39'),
+        ('2','EAN'),
         ('3', 'QR')
     ], string='Barcode type', required=True)
-    barcode_code = fields.Char(string="Barcode Code", store=True)
+    barcode_code = fields.Char(string="Barcode Code", store=True, required=True)
     entry_no = fields.Integer(string="Entry No")
     item_identifiers_line_ids = fields.One2many('tms.item.identifiers.line', 'header_id', string='Item Identifier Line')
     need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")
     from_nav = fields.Boolean(string="From NAV")
 
+    sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)
 
-    # SH
-    sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)   
-    # SH
-
-    # def unlink_identifier(self):
-    #     rec = self.env['tms.item.identifiers'].search([])
-    #     rec.unlink()
 
     def create_identifier_line(self):
         return {
@@ -67,7 +61,7 @@ class TmsItemIdentifiers(models.Model):
             return {'domain': {'unit_of_measure_code': [('code', 'in', item_uom_array)]}}
         else:
             return {'domain': {'unit_of_measure_code': []}}
-    
+        
     @api.model
     def create(self, vals):
         record = super(TmsItemIdentifiers, self).create(vals)
@@ -125,6 +119,7 @@ class TmsItemIdentifiers(models.Model):
             _logger.error(f"Response content: {response.text}")
             raise UserError(f"JSON decode error: {e}")
         
+
     def create_item_identifiers(self, vals, rec):
        
         # Retrieve etag from response headers
@@ -133,7 +128,6 @@ class TmsItemIdentifiers(models.Model):
         else:
             self.update_item_identifier(vals, self.entry_no, rec)
 
-    
     def update_item_identifier(self, vals, entryno, rec):
         etag = self.retrieve_etag(self.item_no.no,entryno)
         current_company = self.env.user.company_id
@@ -144,14 +138,30 @@ class TmsItemIdentifiers(models.Model):
         password = current_company.password_api
 
         if 'variant_code' in vals:
-            varcode = vals['variant_code'] if vals['variant_code'] else ""
+            varcode = ''
+            varcode2 = vals['variant_code'] if vals['variant_code'] else ""
+            if varcode2:
+                variant = self.env['tms.item.variant'].search([
+                    ('id','=', varcode2)
+                ])
+                if variant:
+                    varcode = variant.code
         else:
-            varcode = self.variant_code if self.variant_code else ""
+            varcode = self.variant_code.code if self.variant_code.code else ""
         
         if 'sh_product_barcode_mobile' in vals:
             barcode =  vals['sh_product_barcode_mobile']
         else:
             barcode = self.sh_product_barcode_mobile
+
+        if barcode:
+            existing_barcode = self.env['tms.item.identifiers'].search([
+                ('sh_product_barcode_mobile', '=', barcode),
+                ('id', '!=', self.id)
+            ], limit=1)
+            
+            if existing_barcode:
+                raise UserError(f"The barcode {barcode} is already assigned to another item.")
             
         if 'unit_of_measure_code' in vals:
             uom_code = self.env['tms.unit.of.measures'].search([(
@@ -165,7 +175,6 @@ class TmsItemIdentifiers(models.Model):
         else:
             bartype = self.barcode_type
 
-       
         data = {
              'Variant_Code': varcode,
              "Barcode_Code":barcode,
@@ -178,7 +187,13 @@ class TmsItemIdentifiers(models.Model):
         try:
             auth = HttpNtlmAuth(username, password)
             response = requests.patch(url, headers=headers, auth=auth, json=data)
-            # # response.raise_for_status()  # Raise an HTTPError for bad responses
+
+            if response.status_code == 400:
+                response_json = response.json()
+                resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
+                raise ValidationError(resp)
+
+
             _logger.debug(f"Response Status Code: {response.status_code}")
             _logger.debug(f"Response Headers: {response.headers}")
             _logger.debug(f"Response Content: {response.content}")
@@ -207,9 +222,16 @@ class TmsItemIdentifiers(models.Model):
             item_no = self.item_no if self.item_no else ""
         
         if 'variant_code' in vals:
-            varcode = vals['variant_code'] if vals['variant_code'] else ""
+            varcode = ''
+            varcode2 = vals['variant_code'] if vals['variant_code'] else ""
+            if varcode2:
+                variant = self.env['tms.item.variant'].search([
+                    ('id','=', varcode2)
+                ])
+                if variant:
+                    varcode = variant.code
         else:
-            varcode = self.variant_code if self.variant_code else ""
+            varcode = self.variant_code.code if self.variant_code.code else ""
         
         if 'sh_product_barcode_mobile' in vals:
             barcode =  vals['sh_product_barcode_mobile']
@@ -257,7 +279,8 @@ class TmsItemIdentifiers(models.Model):
                 rec.entry_no = entry_no
                 self.entry_no = entry_no
             else :
-                 raise ValidationError("Data Error, validation on nav")
+                resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
+                raise ValidationError(resp)
 
             # return vals
         except requests.exceptions.HTTPError as e:

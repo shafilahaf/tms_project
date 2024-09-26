@@ -16,12 +16,19 @@ class TMSPurchaseReceiptHeader(models.Model):
     document_no = fields.Char('Document No.', readonly=True)
     source_doc_no = fields.Char('Source Doc. No.', readonly=True)
     posting_date = fields.Date('Posting Date')
-    vendor_shipment_no = fields.Char('Vendor Shipment No')
+    vendor_shipment_no = fields.Char('Vendor Shipment No', size=35)
     company = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company, readonly=True)
     
     receipt_line_ids = fields.One2many('tms.purchase.receipt.line', 'purchase_receipt_id', string='Receipt Line')
 
     state = fields.Selection([('draft', 'Draft'), ('submitted', 'Posted')], string='Status', default='draft', required=True)
+
+    # @api.model
+    # def default_get(self, fields_list):
+    #     res = super(TMSPurchaseReceiptHeader, self).default_get(fields_list)
+    #     if not self.env.context.get('default_id'):
+    #         print("Form is being opened.")
+    #     return res
     
     @api.model
     def create(self, vals):
@@ -69,6 +76,15 @@ class TMSPurchaseReceiptHeader(models.Model):
         auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
 
         for line in self.receipt_line_ids:
+            check_sn_info = False
+            if line.item_no.sn_specific_tracking == True:
+                check_sn_info = True
+            elif line.item_no.sn_purchase_inbound_tracking == True:
+                check_sn_info = True
+            elif line.item_no.lot_specific_tracking == True:
+                check_sn_info = True
+            elif line.item_no.lot_purchase_inbound_tracking == True:
+                check_sn_info = True
             data = {
                 "Document_Type": "Purchase Order",
                 "Document_No": self.source_doc_no,
@@ -78,9 +94,7 @@ class TMSPurchaseReceiptHeader(models.Model):
             }
             try:
                 response = requests.post(url, headers=headers, auth=auth, json=data)
-                response.raise_for_status()
             except requests.exceptions.HTTPError as e:
-            # Parse the XML error response to extract the specific message
                 try:
                     root = ET.fromstring(response.text)
                     error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
@@ -96,25 +110,16 @@ class TMSPurchaseReceiptHeader(models.Model):
                 error_message = f"JSON encode error: {str(e)} {data}"
                 _logger.error(error_message)
                 raise UserError(error_message)
-        # self.handheld_sn()
-        for line in self.receipt_line_ids:
-            if line.item_no and (line.item_no.item_tracking_code in ['SN', 'Lot']):
+            
+            if line.item_no and (check_sn_info==True):
                 self.handheld_sn()
-                break 
         self.posting_receipt()
-        self.state = 'submitted'
-
-        # draft_receipts = self.env['tms.purchase.receipt.header'].search([
-        #     ('source_doc_no', '=', self.source_doc_no),
-        #     ('state', '=', 'draft'),
-        #     ('id', '!=', self.id)  # Exclude the current receipt
-        # ])
-        # if draft_receipts:
-        #     draft_receipts.unlink()
 
         purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
         if not purchase_order:
             raise ValidationError('Related Purchase Order not found.')
+        
+        self.state = 'submitted'
         
         return {
             'name': 'Purchase Order',
@@ -150,12 +155,12 @@ class TMSPurchaseReceiptHeader(models.Model):
              'Post_Action': str(1),
              "Posting_Date": self.posting_date.isoformat()
         }
+
         try:
             response = requests.post(url2, headers=headers, auth=auth, json=data2)
-            response.raise_for_status()
+            # response.raise_for_status()
             # raise UserError(f"Successfully submitted line {line.line_no} for document {self.source_doc_no}.")
         except requests.exceptions.HTTPError as e:
-            # Parse the XML error response to extract the specific message
             try:
                 root = ET.fromstring(response.text)
                 error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
@@ -212,7 +217,7 @@ class TMSPurchaseReceiptHeader(models.Model):
                 
                 try:
                     response = requests.post(url, headers=headers, auth=auth, json=data_sn)
-                    response.raise_for_status()
+                    # response.raise_for_status()
                 except requests.exceptions.HTTPError as e:
                     try:
                         # Parse the JSON error response
@@ -227,10 +232,11 @@ class TMSPurchaseReceiptHeader(models.Model):
                     _logger.error(f"HTTP error occurred while submitting entry {entry.id}: {error_message}")
                     raise UserError(error_message)
                 except ValueError as e:
-                    error_message = f"JSON encode error: {str(e)} - Data: {data}"
+                    # error_message = f"JSON encode error: {str(e)} - Data: {data}"
                     _logger.error(f"JSON encode error while submitting entry {entry.id}: {error_message}")
                     raise UserError(error_message)
-            
+        else:
+            raise UserError('No SN/LOT Detail')
     
 class TMSPurchaseReceiptLine(models.Model):
     _name = 'tms.purchase.receipt.line'
@@ -248,6 +254,8 @@ class TMSPurchaseReceiptLine(models.Model):
     item_tracking_code = fields.Char(string='Item Tracking Code', related='item_no.item_tracking_code',store=True)
     
     available_item_ids = fields.Many2many('tms.item', compute='_compute_available_item_ids', store=False)
+
+
     
     @api.depends('purchase_receipt_id')
     def _compute_available_item_ids(self):
@@ -296,10 +304,6 @@ class TMSPurchaseReceiptLine(models.Model):
                     self.qty_to_receive = 0.0
                     
     def action_view_reservation_entries(self):
-        """
-        This method returns an action to open the tms.reservation.entry tree view,
-        filtered by the current item's item_no and source_id (document_no).
-        """
         self.ensure_one()
         action = self.env.ref('tr_tms_handheld.action_tms_reservation_entry').read()[0]
         
@@ -309,4 +313,17 @@ class TMSPurchaseReceiptLine(models.Model):
         action['context'] = dict(self.env.context, create=False)
         
         return action
+    
+    def unlink(self):
+        for line in self:
+            # Search for the corresponding reservation entries
+            reservation_entries = self.env['tms.reservation.entry'].search([
+                ('item_no', '=', line.item_no.no),
+                ('source_id', '=', line.purchase_receipt_id.document_no)
+            ])
+            # Delete the found reservation entries
+            reservation_entries.unlink()
+        
+        # Call the super method to delete the purchase receipt line
+        return super(TMSPurchaseReceiptLine, self).unlink()
 
