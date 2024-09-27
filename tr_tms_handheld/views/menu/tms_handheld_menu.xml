@@ -67,7 +67,7 @@
         <field name="name">Reservation Entry</field>
         <field name="res_model">tms.reservation.entry</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': True, 'edit': True, 'delete': True}</field>
+        <field name="context">{'create': True, 'edit': False, 'delete': True}</field>
     </record>
 
     <record id="action_tms_item_journal_line" model="ir.actions.act_window">

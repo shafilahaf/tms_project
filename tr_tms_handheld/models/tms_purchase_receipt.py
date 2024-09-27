@@ -29,6 +29,12 @@ class TMSPurchaseReceiptHeader(models.Model):
     #     if not self.env.context.get('default_id'):
     #         print("Form is being opened.")
     #     return res
+
+    def unlink(self):
+        for record in self:
+            if record.state == 'submitted':
+                raise UserError("You cannot delete a purchase receipt that has been Posted.")
+        return super(TMSPurchaseReceiptHeader, self).unlink()
     
     @api.model
     def create(self, vals):
@@ -67,7 +73,7 @@ class TMSPurchaseReceiptHeader(models.Model):
         """
         This method will change the status of the receipt to 'Submitted' and change quantity in line to purchase order nav
         """
-        url = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/Handheld_Line_OData'
+        url = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/Handheld_Line_OData?$format=json'
         headers = {'Content-Type': 'application/json'}
 
         username = self.company.username_api
@@ -91,28 +97,21 @@ class TMSPurchaseReceiptHeader(models.Model):
                 "Line_No": str(line.line_no),
                 "Quantity": str(line.qty_to_receive),
                 "Processed_Header_ID": str(self.id),
+                "Item_No": line.item_no.no,
+                "External_Document_No" : str(self.vendor_shipment_no),
             }
-            try:
-                response = requests.post(url, headers=headers, auth=auth, json=data)
-            except requests.exceptions.HTTPError as e:
-                try:
-                    root = ET.fromstring(response.text)
-                    error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
-                except ET.ParseError:
-                    error_message = response.text  # Fallback to the full response text if XML parsing fails
-                _logger.error(f"HTTP error occurred while submitting line: {error_message}")
-                raise UserError(error_message)
-            except requests.exceptions.RequestException as e:
-                error_message = f"HTTP error occurred: {str(e)}"
-                _logger.error(error_message)
-                raise UserError(error_message)
-            except ValueError as e:
-                error_message = f"JSON encode error: {str(e)} {data}"
-                _logger.error(error_message)
-                raise UserError(error_message)
+            
+            response = requests.post(url, headers=headers, auth=auth, json=data)
+            
+            if response.status_code == 400 :
+                response_json = response.json()
+                resp = response_json.get('odata.error', {}).get('message', {}).get('value', f'Nav Error {response.text}' )
+                raise ValidationError(resp)
             
             if line.item_no and (check_sn_info==True):
                 self.handheld_sn()
+
+        #posting - send to transaction nav
         self.posting_receipt()
 
         purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
@@ -132,50 +131,6 @@ class TMSPurchaseReceiptHeader(models.Model):
                 'create': False, 'edit': False, 'delete': False
             }
         }
-        
-    def posting_receipt(self):
-        """
-        Posting Receipt to NAV
-        """
-        url2 = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/Handheld_Action_Odata'
-        headers = {'Content-Type': 'application/json'}
-
-        username = self.company.username_api
-        password = self.company.password_api
-        
-        auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
-
-        if self.posting_date == False:
-            raise UserError('Please enter the Posting Date before submit')
-
-        data2 = {
-             'Document_Type': "Purchase Order",
-             'Document_No': self.source_doc_no,
-             "Processed_Header_ID": str(self.id),
-             'Post_Action': str(1),
-             "Posting_Date": self.posting_date.isoformat()
-        }
-
-        try:
-            response = requests.post(url2, headers=headers, auth=auth, json=data2)
-            # response.raise_for_status()
-            # raise UserError(f"Successfully submitted line {line.line_no} for document {self.source_doc_no}.")
-        except requests.exceptions.HTTPError as e:
-            try:
-                root = ET.fromstring(response.text)
-                error_message = root.find('.//m:message', {'m': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'}).text
-            except ET.ParseError:
-                error_message = response.text  # Fallback to the full response text if XML parsing fails
-            _logger.error(f"HTTP error occurred while posting receipt: {error_message}")
-            raise UserError(error_message)
-        except requests.exceptions.RequestException as e:
-            error_message = f"HTTP error occurred: {str(e)}"
-            _logger.error(error_message)
-            raise UserError(error_message)
-        except ValueError as e:
-            error_message = f"JSON encode error: {str(e)} {data2}"
-            _logger.error(error_message)
-            raise UserError(error_message)
     
     def handheld_sn(self):
         """
@@ -215,28 +170,61 @@ class TMSPurchaseReceiptHeader(models.Model):
                     "Quantity": str(entry.quantity)
                 }
                 
-                try:
-                    response = requests.post(url, headers=headers, auth=auth, json=data_sn)
-                    # response.raise_for_status()
-                except requests.exceptions.HTTPError as e:
-                    try:
-                        # Parse the JSON error response
-                        error_data = response.json()
-                        error_message = error_data.get('odata.error', {}).get('message', {}).get('value', response.text)
-                    except (json.JSONDecodeError, KeyError):
-                        error_message = response.text  # Fallback to the full response text if JSON parsing fails
-                    _logger.error(f"HTTP error occurred while submitting entry {entry.id}: {error_message}")
-                    raise UserError(error_message)
-                except requests.exceptions.RequestException as e:
-                    error_message = f"HTTP error occurred: {str(e)}"
-                    _logger.error(f"HTTP error occurred while submitting entry {entry.id}: {error_message}")
-                    raise UserError(error_message)
-                except ValueError as e:
-                    # error_message = f"JSON encode error: {str(e)} - Data: {data}"
-                    _logger.error(f"JSON encode error while submitting entry {entry.id}: {error_message}")
-                    raise UserError(error_message)
+                response = requests.post(url, headers=headers, auth=auth, json=data_sn)
+                
+                if response.status_code == 400 :
+                    response_json = response.json()
+                    resp = response_json.get('odata.error', {}).get('message', {}).get('value', f'Nav Error {response.text}' )
+                    raise ValidationError(resp)
+              
         else:
             raise UserError('No SN/LOT Detail')
+        
+    def posting_receipt(self):
+        """
+        Posting Receipt to NAV
+        """
+        url2 = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/Handheld_Action_Odata?$format=json'
+        headers = {'Content-Type': 'application/json'}
+
+        username = self.company.username_api
+        password = self.company.password_api
+        
+        auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
+
+        if self.posting_date == False:
+            raise UserError('Please enter the Posting Date before submit')
+
+        data2 = {
+             'Document_Type': "Purchase Order",
+             'Document_No': self.source_doc_no,
+             "Processed_Header_ID": str(self.id),
+             "Posting_Date": self.posting_date.isoformat(),
+             'Post_Action': str(1),
+             
+        }
+
+        response = requests.post(url2, headers=headers, auth=auth, json=data2)
+
+        if response.status_code == 400 :
+            response_json = response.json()
+            resp = response_json.get('odata.error', {}).get('message', {}).get('value',  f'Nav Error {response.text}' )
+            raise ValidationError(resp)
+        elif response.status_code == 201 :
+           self.fnCreateMessage(f'Purchase Receive No. {self.document_no} succesfully Posted')
+                                 
+
+    def fnCreateMessage(self,message) :
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Calculate Salary',
+                'message': message,
+                'sticky': False}
+        }        
+
+   
     
 class TMSPurchaseReceiptLine(models.Model):
     _name = 'tms.purchase.receipt.line'
@@ -304,13 +292,14 @@ class TMSPurchaseReceiptLine(models.Model):
                     self.qty_to_receive = 0.0
                     
     def action_view_reservation_entries(self):
+        #Details
         self.ensure_one()
         action = self.env.ref('tr_tms_handheld.action_tms_reservation_entry').read()[0]
         
         action['domain'] = [('item_no', '=', self.item_no.no),
                             ('source_id', '=', self.purchase_receipt_id.document_no)]
         
-        action['context'] = dict(self.env.context, create=False)
+        action['context'] = dict(self.env.context, create=False, edit=False)
         
         return action
     

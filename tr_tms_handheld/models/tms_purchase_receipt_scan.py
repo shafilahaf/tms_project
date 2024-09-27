@@ -41,6 +41,7 @@ class TMSPurchaseReceiptScanItem(models.Model):
             digit_first_14 = barcode_2[2:16] 
             digit_2 = barcode_2[:2]
         else:
+            digit_2 = ''
             digit_first_14 = barcode_2
 
         if digit_first_14:
@@ -68,9 +69,11 @@ class TMSPurchaseReceiptScanItem(models.Model):
                         digit_first_2 = barcode_2[:2]
                         if digit_first_2 == line.gs1_identifier:
                             barcode_3 = barcode_2[2:line.data_length]
-                            if digit_first_2 == '10' or digit_first_2 == '23':
+                            if digit_first_2 == '10' or digit_first_2 == '23': #lot
+                                self.fnCheckSNLOT(False,barcode_3)
                                 self.lot_number = barcode_3
-                            elif digit_first_2== '21':
+                            elif digit_first_2== '21': #sn
+                                self.fnCheckSNLOT(barcode_3,False)
                                 self.serial_number = barcode_3
                             elif digit_first_2 == '17':
                                 self.exp_date = self.parse_exp_date(barcode_3)
@@ -81,6 +84,22 @@ class TMSPurchaseReceiptScanItem(models.Model):
                         else:
                             barcode_2 = ''
 
+    def fnCheckSNLOT(self, sn, lot):
+        reserarray = self.reservation_entry_ids
+       
+        if sn:
+            for rsn in reserarray :
+                if rsn.serial_no == sn :
+                    raise UserError(f'SN Number has {sn} been used in Lines')
+            
+        elif lot:
+             for rsn in reserarray :
+                if rsn.lot_no == lot :
+                    raise UserError(f'Lot Number has {lot} been used in Lines')
+            
+        
+
+    
     def parse_exp_date(self, date_str):
         """Parse expiration date from barcode to a date object (assuming YYMMDD format)."""
         try:
@@ -283,16 +302,16 @@ class TMSPurchaseReceiptScanItem(models.Model):
             lambda r: r.serial_no == self.serial_number
         )
 
-        if existing_entry:
-            raise UserError("The Serial Number [%s] already exists in the current reservation entries." % self.serial_number)
+        #if existing_entry:
+        #    raise UserError("The Serial Number [%s] already exists in the current reservation entries." % self.serial_number)
 
         reservation_entries = self.env['tms.reservation.entry'].search([
             ('serial_no', '=', self.serial_number),
             ('source_id', '=', self.purchase_receipt_id.document_no)
         ])
 
-        if reservation_entries:
-            raise UserError("The Serial Number [%s] already exists in the system." % self.serial_number)
+        #if reservation_entries:
+        #    raise UserError("The Serial Number [%s] already exists in the system." % self.serial_number)
 
         # Add new reservation entry for serial number
         self.reservation_entry_ids = [(0, 0, {
@@ -300,6 +319,8 @@ class TMSPurchaseReceiptScanItem(models.Model):
             'quantity': 1,  # Default quantity is 1 for serial number
             'purchase_scan_id': self.id,
             'expiration_date': self.exp_date if self.exp_date else False,
+            'source_type': '39',
+            'item_no': self.item_no.id,
         })]
 
         self.serial_number = ''  # Clear after adding
@@ -329,6 +350,8 @@ class TMSPurchaseReceiptScanItem(models.Model):
             'quantity': self.quantity,  # Quantity is based on user input
             'purchase_scan_id': self.id,
             'expiration_date': self.exp_date if self.exp_date else False,
+            'source_type': '39',
+            'item_no': self.item_no.id,
         })]
 
         self.lot_number = ''  # Clear after adding

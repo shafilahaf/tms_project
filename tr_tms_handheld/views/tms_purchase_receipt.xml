@@ -27,8 +27,8 @@
                 </header> -->
                 <sheet>
                     <div class="oe_button_group" style="margin-bottom: 15px;">
-                        <button name="scan_itemm" string="Scan Item" type="object" class="oe_highlight" />
-                        <button name="submit" string="Submit" type="object" class="oe_highlight" style="margin-left: 10px;" />
+                        <button name="scan_itemm" string="Scan Item" type="object" class="oe_highlight" attrs ="{'invisible':[('state','=', 'submitted')]}"/>
+                        <button name="submit" string="Submit" type="object" class="oe_highlight" style="margin-left: 10px;" attrs ="{'invisible':[('state','=', 'submitted')]}"/>
                     </div>
                     <group col="2">
                         <group>
@@ -51,7 +51,7 @@
                                     <field name="quantity" force_save="1"/>
                                     <field name="uom" force_save="1"/>
                                     <field name="qty_to_receive" force_save="1"/>
-                                    <field name="qty_received" force_save="1"/>
+                                    <field name="qty_received" force_save="1" invisible="1"/>
                                     <field name="available_item_ids" invisible="1"/>
                                     <field name="item_tracking_code" invisible="1"/>
                                     <!-- <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" /> -->
@@ -65,7 +65,7 @@
                                         <field name="quantity" />
                                         <field name="uom" />
                                         <field name="qty_to_receive" />
-                                        <field name="qty_received" />
+                                        <field name="qty_received" invisible="1"/>
                                         <field name="available_item_ids" invisible="1"/>
                                         <field name="item_tracking_code" invisible="1"/>
                                         <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" attrs="{'invisible': [('item_tracking_code', '=', '')]}" />
@@ -161,12 +161,12 @@
     </record>
     <!--  -->
 
-    <record id="action_tms_reservation_entry" model="ir.actions.act_window">
+    <record id="action_tms_reservation_entry2" model="ir.actions.act_window">
         <field name="name">Reservation Entries</field>
         <field name="res_model">tms.reservation.entry</field>
         <field name="view_mode">tree,form</field>
         <field name="view_id" ref="tms_reservation_entry_view_tree"/>
-        <field name="context">{}</field>
+        <field name="context">{'create': True, 'edit': False, 'delete': True}</field>
         <field name="domain">[]</field>
     </record>
 
