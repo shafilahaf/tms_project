@@ -48,8 +48,7 @@ class TmsItemVariant(http.Controller):
                 'item_no': item_record.id,
                 'description': description,
                 'description_2': description_2,
-                # 'barcode_type_id': barcode_record.id if barcode_record else False,
-                # 'barcode_code': barcode_code if barcode_record else False
+              
                 
             })
             return {
@@ -63,8 +62,7 @@ class TmsItemVariant(http.Controller):
                 'item_no': item_record.id,
                 'description': description,
                 'description_2': description_2,
-                # 'barcode_type_id': barcode_record.id if barcode_record else False,
-                # 'barcode_code': barcode_code if barcode_record else False
+              
             })
             return {
                 'message': 'Item Variant created successfully',

@@ -3,7 +3,7 @@
 
     <record id="purchase_receipt_view_tree" model="ir.ui.view">
         <field name="name">purchase_receipt.view.tree</field>
-        <field name="model">tms.purchase.receipt.header</field>
+        <field name="model">tms.handheld.transaction</field>
         <field name="arch" type="xml">
             <tree string="">
                 <field name="document_no" />
@@ -17,7 +17,7 @@
 
     <record id="purchase_receipt_view_form" model="ir.ui.view">
         <field name="name">purchase.receipt.view.form</field>
-        <field name="model">tms.purchase.receipt.header</field>
+        <field name="model">tms.handheld.transaction</field>
         <field name="arch" type="xml">
             <form string="">
                 <!-- <header>
@@ -32,8 +32,9 @@
                     </div>
                     <group col="2">
                         <group>
-                            <field name="document_no" attrs ="{'readonly':[('state','=', 'submitted')]}"/>
-                            <field name="source_doc_no" attrs ="{'readonly':[('state','=', 'submitted')]}"/>
+                            <field name="document_type" readonly="1"/>
+                            <field name="document_no" readonly="1"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
+                            <field name="source_doc_no" readonly="1"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
                             <field name="state" readonly="1" string="Receipt Status"/>
                         </group>
                         <group>
@@ -43,7 +44,7 @@
                     </group>
                     <notebook>
                         <page name="receipt_line" string="Receipt Line">
-                            <field name="receipt_line_ids" attrs ="{'readonly':[('state','=', 'submitted')]}">
+                            <field name="transaction_line_ids" attrs ="{'readonly':[('state','=', 'submitted')]}">
                                 <tree editable="bottom">
                                     <field name="line_no" force_save="1"/>
                                     <field name="item_no" />
@@ -82,7 +83,7 @@
     <!--  -->
     <record id="purchase_receipt_2_view_tree" model="ir.ui.view">
         <field name="name">purchase.receipt.2.view.tree</field>
-        <field name="model">tms.purchase.receipt.header</field>
+        <field name="model">tms.handheld.transaction</field>
         <field name="priority" eval="18"/>
         <field name="arch" type="xml">
             <tree string="">
@@ -97,7 +98,7 @@
 
     <record id="purchase_receipt_2_view_form" model="ir.ui.view">
         <field name="name">purchase.receipt.2.view.form</field>
-        <field name="model">tms.purchase.receipt.header</field>
+        <field name="model">tms.handheld.transaction</field>
         <field name="priority" eval="18"/>
         <field name="arch" type="xml">
             <form string="">
@@ -124,7 +125,7 @@
                     </group>
                     <notebook>
                         <page name="receipt_line" string="Receipt Line">
-                            <field name="receipt_line_ids">
+                            <field name="transaction_line_ids">
                                 <tree editable="bottom">
                                     <field name="line_no" force_save="1"/>
                                     <field name="item_no" />

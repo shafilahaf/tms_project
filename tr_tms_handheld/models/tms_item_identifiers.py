@@ -15,23 +15,21 @@ class TmsItemIdentifiers(models.Model):
     _rec_name = 'item_no'
 
     item_no = fields.Many2one('tms.item', string='Item', store=True)
-    # item_no_no = fields.Char(related='item_no.item_no_no', string='Item Number', store=True)
+    item_no_no = fields.Char(string='Item Number', store=True)
     variant_code = fields.Many2one('tms.item.variant', string='Variant Code', domain="[('item_no', '=', item_no)]", store=True)
-    unit_of_measure_code = fields.Many2one('tms.unit.of.measures', string='Unit of Measures', store=True, required=True)
-    # item_uom = fields.Many2one('tms.item.uom', string="Item UoM", store=True, domain="[('item_no', '=', item_no_no)]")
+    # unit_of_measure_code = fields.Many2one('tms.unit.of.measures', string='Unit of Measures', store=True, required=True)
+    unit_of_measure_code = fields.Many2one('tms.item.uom', string="Item UoM", store=True, domain="[('item_no', '=', item_no_no)]")
     barcode_type = fields.Selection([
         ('1', 'GSI 128'),
         ('2','EAN'),
         ('3', 'QR')
     ], string='Barcode type', required=True)
-    barcode_code = fields.Char(string="Barcode Code", store=True, required=True)
+    #barcode_code = fields.Char(string="Barcode Code", store=True, required=True)
     entry_no = fields.Integer(string="Entry No")
     item_identifiers_line_ids = fields.One2many('tms.item.identifiers.line', 'header_id', string='Item Identifier Line')
     need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")
     from_nav = fields.Boolean(string="From NAV")
-
     sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)
-
 
     # barcode
     @api.onchange('sh_product_barcode_mobile', 'barcode_type')
@@ -59,9 +57,6 @@ class TmsItemIdentifiers(models.Model):
         return new_barcode
     # barcode
 
-
-
-
     def create_identifier_line(self):
         return {
             'name': 'Item Line Identifiers',
@@ -78,8 +73,13 @@ class TmsItemIdentifiers(models.Model):
             'domain': [('source_entry_no', '=', self.entry_no)]
         }
 
+     
     @api.onchange('item_no')
     def _onchange_item_no(self):
+        self.item_no_no = self.item_no.no
+        # self.fnfilterItemUom()
+      
+    def fnfilterItemUom(self) : 
         # for rec in self:
         if self.item_no:
             item_uom = self.env['tms.item.uom'].search([(
@@ -92,6 +92,7 @@ class TmsItemIdentifiers(models.Model):
             return {'domain': {'unit_of_measure_code': [('code', 'in', item_uom_array)]}}
         else:
             return {'domain': {'unit_of_measure_code': []}}
+        
         
     @api.model
     def create(self, vals):
@@ -119,6 +120,7 @@ class TmsItemIdentifiers(models.Model):
         # Proceed with the standard unlink process
         return super(TmsItemIdentifiers, self).unlink()
 
+    
     # SENd API to NAV
     def retrieve_etag(self, itemno ,entryno):
         current_company = self.env.user.company_id
@@ -129,7 +131,9 @@ class TmsItemIdentifiers(models.Model):
         username = current_company.username_api
         password = current_company.password_api
         
-    
+        if username == False or password == False or  current_company.ip_or_url_api == False or current_company.port_api == False:
+             raise ValidationError( f'You have to setup API Connection in companies')
+        
         auth = HttpNtlmAuth(username, password)
         response = requests.get(url, headers=headers, auth=auth)
        
@@ -165,6 +169,9 @@ class TmsItemIdentifiers(models.Model):
         username = current_company.username_api
         password = current_company.password_api
 
+        if username == False or password == False or  current_company.ip_or_url_api == False or current_company.port_api == False:
+             raise ValidationError( f'You have to setup API Connection in companies')
+
         data = self.fnCreateItemIdentifierJson(vals,rec,False)
 
         auth = HttpNtlmAuth(username, password)
@@ -182,6 +189,9 @@ class TmsItemIdentifiers(models.Model):
 
         username = current_company.username_api
         password = current_company.password_api
+
+        if username == False or password == False or  current_company.ip_or_url_api == False or current_company.port_api == False:
+             raise ValidationError( f'You have to setup API Connection in companies')
         
         auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
         
@@ -232,9 +242,16 @@ class TmsItemIdentifiers(models.Model):
         #         raise UserError(f"The barcode {barcode} is already assigned to another item.")
             
         if 'unit_of_measure_code' in vals:
-            uom_code = self.env['tms.unit.of.measures'].search([(
-                'id','=', vals['unit_of_measure_code']
-            )]).code
+            uom = self.env['tms.item.uom'].search([
+                ('id','=',vals['unit_of_measure_code'])
+            ])
+            uom_code = uom.code
+            
+            # uom_code = self.env['tms.item.uom'].search([(
+            #     'code','=', vals['unit_of_measure_code']),(
+            #     'item_no','=', vals['item_no']
+            # ),
+            # ]).code
         else:
             uom_code = self.unit_of_measure_code.code
             
@@ -282,6 +299,9 @@ class TmsItemIdentifiers(models.Model):
 
         username = current_company.username_api
         password = current_company.password_api
+
+        if username == False or password == False or  current_company.ip_or_url_api == False or current_company.port_api == False:
+             raise ValidationError( f'You have to setup API Connection in companies')
         
         auth = HttpNtlmAuth(username, password)
         response = requests.delete(url, headers=headers, auth=auth)
@@ -306,6 +326,12 @@ class TMSItemIdentifierLine(models.Model):
     need_sent_to_nav = fields.Boolean(string="Need Sent to NAV", default=True)
     from_nav = fields.Boolean(string="From NAV")
     source_entry_no = fields.Integer(string="Source Entry No.")
+
+    @api.constrains('data_length')
+    def _check_data_length(self):
+        for record in self:
+            if record.data_length <= 0:
+                raise ValidationError("Data Length must be greater than 0.")
 
     @api.constrains('sequence', 'header_id')
     def _check_unique_sequence(self):
@@ -353,6 +379,9 @@ class TMSItemIdentifierLine(models.Model):
 
         username = current_company.username_api
         password = current_company.password_api
+
+        if username == False or password == False or  current_company.ip_or_url_api == False or current_company.port_api == False:
+             raise ValidationError( f'You have to setup API Connection in companies')
       
         auth = HttpNtlmAuth(username, password)
         response = requests.delete(url, headers=headers, auth=auth)
@@ -369,6 +398,9 @@ class TMSItemIdentifierLine(models.Model):
         headers = {'Content-Type': 'application/json'}
         username = current_company.username_api
         password = current_company.password_api
+
+        if username == False or password == False or  current_company.ip_or_url_api == False or current_company.port_api == False:
+             raise ValidationError( f'You have to setup API Connection in companies')
         
         
         auth = HttpNtlmAuth(username, password)
@@ -397,6 +429,10 @@ class TMSItemIdentifierLine(models.Model):
 
     
     def update_item_identifier_line(self, vals, rec):
+        if rec.id :
+            if 'sequence' in vals:
+                raise ValidationError( f'Cannot modify sequence, please delete for changes the sequence')
+            
         header = self.env['tms.item.identifiers'].search([
             ('item_identifiers_line_ids', '=', rec.header_id.id)])
 
@@ -407,6 +443,9 @@ class TMSItemIdentifierLine(models.Model):
 
         username = current_company.username_api
         password = current_company.password_api
+
+        if username == False or password == False or  current_company.ip_or_url_api == False or current_company.port_api == False:
+             raise ValidationError( f'You have to setup API Connection in companies')
 
         data = self.fnCreateItemIdentifierLineJson(vals,rec,False)
           
@@ -424,6 +463,9 @@ class TMSItemIdentifierLine(models.Model):
 
         username = current_company.username_api
         password = current_company.password_api
+
+        if username == False or password == False or  current_company.ip_or_url_api == False or current_company.port_api == False:
+             raise ValidationError( f'You have to setup API Connection in companies')
         
         auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
 
@@ -448,9 +490,9 @@ class TMSItemIdentifierLine(models.Model):
             gs1_identifier = self.gs1_identifier if self.gs1_identifier else ""
         
         if 'description' in vals:
-            description =  vals['description']
+            description =  vals['description'] if vals['description'] else ""
         else:
-            description = self.description
+            description = self.description if self.description else ""
             
         if 'data_length' in vals:
             data_length =  vals['data_length']

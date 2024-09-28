@@ -61,6 +61,20 @@
                                 </group>
                             </group>
                         </page>
+                        <page name="general_item_uom" string="Item UoM">
+                            <field name="item_uom_ids">
+                                <tree>
+                                    <field name="code" />
+                                    <field name="qty_per_unit_of_measure" />
+                                </tree>
+                                <form>
+                                    <group>
+                                        <field name="code" />
+                                        <field name="qty_per_unit_of_measure" />
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
                     </notebook>
                 </sheet>
             </form>

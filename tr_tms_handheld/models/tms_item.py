@@ -43,10 +43,22 @@ class TmsItem(models.Model):
     lot_transfer_tracking = fields.Boolean('Lot Transfer Tracking', default=False)
     barcode = fields.Char(string="Barcode")
     
+    item_uom_ids = fields.One2many('tms.item.uom', string='Item UoM', compute='_compute_item_uom')
+    
     has_been_sent_to_nav = fields.Boolean(string='Has been sent to NAV', default=False)
     etag = fields.Char(string='ETag')
     
     combination = fields.Char(string='Combination', compute='_compute_fields_combination')
+
+    @api.depends('no')
+    def _compute_item_uom(self):
+        for record in self:
+            if record.no:
+                record.item_uom_ids = self.env['tms.item.uom'].search([
+                    ('item_no', '=', record.no)
+                ])
+            else:
+                record.item_uom_ids = False
 
     def open_item_identifiers(self):
         default_uom_code = self.env['tms.unit.of.measures'].search([
@@ -66,8 +78,6 @@ class TmsItem(models.Model):
             },
             'domain': [('item_no', '=', self.id)]
         }
-
-
     
     @api.depends('no', 'description')
     def _compute_fields_combination(self):

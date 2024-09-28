@@ -24,8 +24,8 @@
         "views/tms_item_identifiers.xml",
         "views/tms_item_variant.xml",
         "views/tms_reservation_entry.xml",
-        "views/tms_purchase_receipt.xml",
-        "views/tms_purchase_scan.xml",
+        "views/tms_handheld_transaction.xml",
+        "views/tms_handheld_transaction_scan.xml",
     ],
     "assets": {
         "web.assets_backend": [

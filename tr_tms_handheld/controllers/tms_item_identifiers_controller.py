@@ -27,50 +27,6 @@ def validate_token(func):
     return wrap
 
 class TmsItemIdentifiers(http.Controller):
-    # @validate_token
-    # @http.route('/api/tms_item_identifiers', auth='none', methods=['GET'], csrf=False, type='http')
-    # def get_item_identifier(self,**kw):
-    #     # data = request.jsonrequest
-    #     # tms_item_identifiers = request.env['tms.item.identifiers'].sudo()
-    #     # item_identifier = request.env['tms.item.identifiers'].sudo().search([('header_id', '=', tms_item_identifiers.id)], limit=1)
-
-    #     items = request.env['tms.item.identifiers'].sudo().search([(
-    #         'self.entry_no', '=', True
-    #     )])
-    #     items_data = []
-    #     for item in items:
-    #         items_data.append({
-    #             'id': item.id,
-    #             'item_no': item.item_no.no,
-    #             'variant_code': item.variant_code.code,
-    #             'unit_of_measure_code': item.unit_of_measure_code.code,
-    #             'barcode_type': item.barcode_type,
-    #             'sh_product_barcode_mobile': item.sh_product_barcode_mobile
-
-    #         })
-    #     return json.dumps({'status': 'success', 'data': items_data})
-    
-    # @validate_token
-    # @http.route('/api/tms_item_identifier_lines', auth='none', methods=['GET'], csrf=False, type='http')
-    # def get_item_line_identifier(self,**kw):
-    #     # data = request.jsonrequest
-    #     # tms_item_identifiers = request.env['tms.item.identifiers'].sudo()
-    #     # item_identifier = request.env['tms.item.identifiers'].sudo().search([('header_id', '=', tms_item_identifiers.id)], limit=1)
-
-    #     items = request.env['tms.item.identifiers.line'].sudo().search([(
-    #         'need_sent_to_nav', '=', True
-    #     )])
-    #     items_data = []
-    #     for item in items:
-    #         items_data.append({
-    #             'id': item.id,
-    #             'entry_no': item.header_id.entry_no,
-    #             'sequence': item.sequence,
-    #             'gs1_identifier': item.gs1_identifier,
-    #             'description': item.description,
-    #             'data_length': item.data_length,
-    #         })
-    #     return json.dumps({'status': 'success', 'data': items_data})
 
     @validate_token
     @http.route('/api/tms_item_identifiers', auth='none', methods=['POST'], csrf=False, type='json')
@@ -128,27 +84,22 @@ class TmsItemIdentifiers(http.Controller):
                 'response': 200,
                 'Id': item_identifier.id
             }
-        try:
-            tms_item_identifiers.create({
-                'item_no': item_record.id,
-                'variant_code': item_var.id if variant_code else False,
-                'unit_of_measure_code': uom.id,
-                'barcode_type': barcode_type,
-                'sh_product_barcode_mobile': str(barcode_code),
-                'entry_no': int(entry_no),
-            })
-            item_identifier = tms_item_identifiers.search([('entry_no', '=', entry_no)])
-            return {
-                'message': 'Item Identifiers created successfully',
-                'response': 200,
-                'Id': item_identifier.id
-            }
-        except Exception as e:
-            _logger.error("Error fetching Item Journal Line: %s", e)
-            return {
-                'error': str(e),
-                'response': 500
-            }
+       
+        tms_item_identifiers.create({
+            'item_no': item_record.id,
+            'variant_code': item_var.id if variant_code else False,
+            'unit_of_measure_code': uom.id,
+            'barcode_type': barcode_type,
+            'sh_product_barcode_mobile': str(barcode_code),
+            'entry_no': int(entry_no),
+        })
+        item_identifier = tms_item_identifiers.search([('entry_no', '=', entry_no)])
+        return {
+            'message': 'Item Identifiers created successfully',
+            'response': 200,
+            'Id': item_identifier.id
+        }
+      
     
     @validate_token
     @http.route('/api/tms_item_identifiers/<int:id>', auth='none', methods=['DELETE'], csrf=False, type='json')

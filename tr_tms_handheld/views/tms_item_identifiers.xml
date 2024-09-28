@@ -13,8 +13,10 @@
               <field name="item_no" readonly="1" force_save="1"/>
               <field name="variant_code" force_save="1" options="{'no_create': True, 'no_create_edit':True}"/>
               <field name="unit_of_measure_code" force_save="1" options="{'no_create': True, 'no_create_edit':True}"/>
+              <!-- <field name="item_uom" /> -->
+              <field name="item_no_no" invisible="1"/>
               <field name="barcode_type" />
-              <!-- <field name="barcode_code" widget="rt_widget_field_char_qr_cam" force_save="1"/> -->
+
               <field name="sh_product_barcode_mobile" string="Barcode Code" force_save="1"/>
               <script type="text/javascript" src="/sh_product_barcode_mobile/static/src/js/sh_product_barcode_mobile.js"></script>
                 <section class="oe_edit_only">

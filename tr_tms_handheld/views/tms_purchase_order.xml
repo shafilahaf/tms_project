@@ -19,31 +19,31 @@
     <field name="arch" type="xml">
         <form string="Purchase Order Header">
             <header>
-                <button name="create_po_receipt" string="Create Receipt" type="object" class="oe_highlight" />
+                <button name="create_po_receipt" string="Create Receipt" type="object" class="oe_highlight" attrs ="{'invisible':[('complete_received','=', True)]}"/>
             </header>
             <sheet>
                 <button name="receipt_po" type="object" string="View Receipts" class="btn-primary"/>
                 <group>
                     <group>
-                        <field name="no" />
-                        <field name="buy_from_vendor_name" string="Vendor Name"/>
-                        <field name="order_date" />
-                        <field name="location_code" />
-                        <field name="store_no" />
-                        <field name="complete_received" />
-                        <field name="status" />
+                        <field name="no" readonly="1"/>
+                        <field name="buy_from_vendor_name" string="Vendor Name" readonly="1"/>
+                        <field name="order_date" readonly="1"/>
+                        <field name="location_code" readonly="1"/>
+                        <field name="store_no" readonly="1"/>
+                        <field name="complete_received" readonly="1"/>
+                        <field name="status" readonly="1"/>
                     </group>
                 </group>
                 <notebook>
                     <page string="Lines">
-                        <field name="purchase_order_line_ids">
+                        <field name="purchase_order_line_ids" readonly="1">
                             <tree editable="bottom">
-                                <field name="no" />
-                                <field name="description"/>
-                                <field name="unit_of_measure_code" string="UoM"/>
-                                <field name="quantity" string="Qty."/>
-                                <field name="qty_to_receive" string="Qty. To Receive"/>
-                                <field name="qty_received" string="Qty. Received"/>
+                                <field name="no" readonly="1"/>
+                                <field name="description" readonly="1"/>
+                                <field name="unit_of_measure_code" string="UoM" readonly="1"/>
+                                <field name="quantity" string="Qty." readonly="1"/>
+                                <field name="qty_to_receive" string="Qty. To Receive" readonly="1"/>
+                                <field name="qty_received" string="Qty. Received" readonly="1"/>
                             </tree>
                             <form>
                                 <group>
@@ -51,8 +51,8 @@
                                     <field name="description"/>
                                     <field name="unit_of_measure_code"/>
                                     <field name="quantity"/>
-                                    <field name="qty_to_receive"/>
-                                    <field name="qty_received"/>
+                                    <field name="qty_to_receive" string="Qty. to Process"/>
+                                    <field name="qty_received" string="Qty. Processed"/>
                                 </group>
                             </form>
                         </field>

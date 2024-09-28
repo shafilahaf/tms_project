@@ -2,18 +2,18 @@
 <odoo>
 
     <record id="tms_purchase_scan_item_view_form" model="ir.ui.view">
-        <field name="name">tms.purchase.scan.item.view.form</field>
-        <field name="model">tms.purchase.scan.item</field>
+        <field name="name">tms.handheld.transaction.scan.view.form</field>
+        <field name="model">tms.handheld.transaction.scan</field>
         <field name="arch" type="xml">
             <form string="">
                 <sheet>
                     <div class="oe_button_group" style="margin-bottom: 15px;">
                         <button name="clear_value" string="Clear" type="object" class="oe_highlight" />
-                        <button name="submit_purchase_receipt_line" string="Submit" type="object" class="oe_highlight" style="margin-left: 10px;" />
+                        <button name="submit_scan_line" string="Submit" type="object" class="oe_highlight" style="margin-left: 10px;" />
                          <button name="back_to_receipt" string="Back to Receipt" type="object" class="oe_highlight" style="margin-left: 10px;" />
                     </div>
                     <group>
-                        <!-- <field name="barcode_code" widget="rt_widget_field_char_qr_cam"/> -->
+
                         <field name="sh_product_barcode_mobile" string="Barcode Code" force_save="1"/>
                         <script type="text/javascript" src="/sh_product_barcode_mobile/static/src/js/sh_product_barcode_mobile.js"></script>
                         <section class="oe_edit_only">
@@ -44,7 +44,7 @@
                         <field name="serial_number" attrs="{'invisible': [('contains_sn','=',False)]}"/>
                         <field name="lot_number" attrs="{'invisible': [('contains_lot','=',False)]}"/>
                         <field name="exp_date" invisible="1"/>
-                        <field name="quantity" widget="char"/>
+                        <field name="quantity" widget="char" attrs="{'invisible': [('contains_sn','=',True)]}"/>
                         <field name="available_item_ids" invisible="1"/>
                         <field name="item_tracking_code" invisible="1"/>
                         <field name="contains_sn" invisible="1"/>

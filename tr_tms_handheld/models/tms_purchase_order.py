@@ -47,14 +47,15 @@ class TmsPurchaseOrderHeader(models.Model):
     purchase_order_line_ids = fields.One2many('tms.purchase.order.line', 'header_id', string='Purchase Order Lines')
     
     def create_po_receipt(self):
-        receipt_headerr = self.env['tms.purchase.receipt.header'].create({
+        receipt_headerr = self.env['tms.handheld.transaction'].create({
             'source_doc_no': self.no,
+            'document_type':"1"
         })
 
         return {
             'name': 'Receipt',
             'view_mode': 'form',
-            'res_model': 'tms.purchase.receipt.header',
+            'res_model': 'tms.handheld.transaction',
             'type': 'ir.actions.act_window',
             'target': 'current',
             'res_id': receipt_headerr.id,
@@ -65,7 +66,7 @@ class TmsPurchaseOrderHeader(models.Model):
         }
 
     def receipt_po(self):
-        # empty_receipts = self.env['tms.purchase.receipt.header'].create({
+        # empty_receipts = self.env['tms.handheld.transaction'].create({
         #     ('source_doc_no', '=', self.no),
         #     ('receipt_line_ids', '=', False)
         # })
@@ -76,7 +77,7 @@ class TmsPurchaseOrderHeader(models.Model):
         action['domain'] = [('source_doc_no', '=', self.no)]
         action['context'] = dict(self.env.context, create=False, edit=True)
         return action
-
+    
 
 class TmsPurchaseOrderLine(models.Model):
     _name = 'tms.purchase.order.line'
