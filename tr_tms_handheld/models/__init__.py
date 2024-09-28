@@ -3,7 +3,6 @@ from . import tms_item
 from . import tms_item_uom
 from . import tms_company_inherit
 from . import tms_purchase_order
-from . import tms_receipt
 from . import tms_receipt_detail
 from . import tms_sales
 from . import tms_transfer

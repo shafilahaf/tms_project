@@ -6,6 +6,7 @@
         <field name="model">tms.reservation.entry</field>
         <field name="arch" type="xml">
             <tree string="">
+                <field name="source_id" />
                 <field name="item_no" />
                 <field name="serial_no" />
                 <field name="lot_no" />
@@ -35,6 +36,18 @@
                     </group>
                 </sheet>
             </form>
+        </field>
+    </record>
+
+    <record id="tms_reservation_entry_view_search" model="ir.ui.view">
+        <field name="name">tms.reservation.entry.view.search</field>
+        <field name="model">tms.reservation.entry</field>
+        <field name="arch" type="xml">
+            <search string="">
+                <field name="serial_no" />
+                <field name="lot_no" />
+                <field name="item_no" />
+            </search>
         </field>
     </record>
 

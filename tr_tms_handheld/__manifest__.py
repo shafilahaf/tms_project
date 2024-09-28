@@ -14,7 +14,6 @@
         "views/tms_company_inherit.xml",
         "views/tms_company_inherit.xml",
         "views/tms_purchase_order.xml",
-        "views/tms_receipt.xml",
         "views/tms_receipt_details.xml",
         "views/tms_sales.xml",
         "views/tms_transfer.xml",

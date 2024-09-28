@@ -33,6 +33,35 @@ class TmsItemIdentifiers(models.Model):
     sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)
 
 
+    # barcode
+    @api.onchange('sh_product_barcode_mobile', 'barcode_type')
+    def _onchange_sh_product_barcode_mobile(self):
+        if self.sh_product_barcode_mobile and self.barcode_type in ['1', '3']:  
+            try:
+                # barcode parsing method for GS1-128
+                parsed_data = self.parse_gs1_128_barcode(self.sh_product_barcode_mobile)
+                self.sh_product_barcode_mobile = parsed_data
+
+            except Exception as e:
+                raise ValidationError(f"Error parsing GS1-128 barcode: {str(e)}")
+
+    def parse_gs1_128_barcode(self, barcode):
+        clean_barcode = barcode.replace("\x1d", "")
+        if barcode[:2] == "01":
+            digit_first_14 = barcode[2:16]
+            new_barcode= digit_first_14
+        elif clean_barcode[:2] == "01":
+            digit_first_14 = clean_barcode[2:16]
+            new_barcode= digit_first_14
+        else:
+            new_barcode = barcode
+
+        return new_barcode
+    # barcode
+
+
+
+
     def create_identifier_line(self):
         return {
             'name': 'Item Line Identifiers',
@@ -107,15 +136,15 @@ class TmsItemIdentifiers(models.Model):
         if response.status_code == 400 :
             response_json = response.json()
             resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
-            raise ValidationError(resp)
+            raise ValidationError( f'Nav Error {resp}')
 
         # Retrieve etag from response headers
         etag = response.headers.get('ETag')
         if not etag:
             _logger.error("ETag not found in response headers")
-                # raise UserError("ETag not found in response headers")
+            raise UserError("ETag not found in response headers")
 
-            return etag
+        return etag
 
         
 
@@ -144,7 +173,7 @@ class TmsItemIdentifiers(models.Model):
         if response.status_code == 400:
             response_json = response.json()
             resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
-            raise ValidationError(resp)
+            raise ValidationError( f'Nav Error {resp}')
 
     def post_item_identifier(self, vals, rec):
         current_company = self.env.user.company_id
@@ -162,7 +191,7 @@ class TmsItemIdentifiers(models.Model):
         if response.status_code == 400:
             response_json = response.json()
             resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
-            raise ValidationError(resp)
+            raise ValidationError( f'Nav Error {resp}')
 
         response_json = response.json()
         entry_no = response_json.get("Entry_No")
@@ -260,7 +289,7 @@ class TmsItemIdentifiers(models.Model):
         if response.status_code == 400:
             response_json = response.json()
             resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
-            raise ValidationError(resp)
+            raise ValidationError( f'Nav Error {resp}')
     # SENd API to NAV
 
 
@@ -331,7 +360,7 @@ class TMSItemIdentifierLine(models.Model):
         if response.status_code == 400:
             response_json = response.json()
             resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
-            raise ValidationError(resp)
+            raise ValidationError( f'Nav Error {resp}')
         
     def retrieve_line_etag(self, entryno, sequence):
         current_company = self.env.user.company_id
@@ -386,7 +415,7 @@ class TMSItemIdentifierLine(models.Model):
         if response.status_code == 400:
             response_json = response.json()
             resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
-            raise ValidationError(resp)
+            raise ValidationError(f'Nav Error {resp}')
 
     def post_item_identifier_line(self, vals, rec):
         current_company = self.env.user.company_id
@@ -405,7 +434,7 @@ class TMSItemIdentifierLine(models.Model):
         if response.status_code == 400:
             response_json = response.json()
             resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
-            raise ValidationError(resp)
+            raise ValidationError(f'Nav Error {resp}')
         
     def fnCreateItemIdentifierLineJson(self,vals,rec,isCreate):
         if 'sequence' in vals:

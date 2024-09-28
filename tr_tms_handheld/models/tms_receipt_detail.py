@@ -46,35 +46,35 @@ class TmsReceiptDetailHeader(models.Model):
         else:
             raise UserError('Barcode not found in the purchase order')
         
-    def submit_receipt_detail(self):
-        """
-        Submit the receipt detail to the receipt header"""
-        receipt_header = self.env['tms.receipt.header'].search([('no', '=', self.no)], limit=1)
-        if not receipt_header:
-            raise UserError('Receipt header not found.')
+    # def submit_receipt_detail(self):
+    #     """
+    #     Submit the receipt detail to the receipt header"""
+    #     receipt_header = self.env['tms.receipt.header'].search([('no', '=', self.no)], limit=1)
+    #     if not receipt_header:
+    #         raise UserError('Receipt header not found.')
 
-        for line in range(len(self.receipt_detail_line_ids)):
-            receipt_line = self.env['tms.receipt.line'].create({
-                'header_id': receipt_header.id,
-                'line_no': line.line_no,
-                'item_no': line.item_no,
-                'quantity': line.quantity,
-                'uom': line.uom,
-                'item_description': line.item_description,
-                'document_type': line.document_type,
-                'document_no': line.document_no,
-            })
+    #     for line in range(len(self.receipt_detail_line_ids)):
+    #         receipt_line = self.env['tms.receipt.line'].create({
+    #             'header_id': receipt_header.id,
+    #             'line_no': line.line_no,
+    #             'item_no': line.item_no,
+    #             'quantity': line.quantity,
+    #             'uom': line.uom,
+    #             'item_description': line.item_description,
+    #             'document_type': line.document_type,
+    #             'document_no': line.document_no,
+    #         })
 
-        self.unlink()
+    #     self.unlink()
 
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Receipt',
-            'view_mode': 'form',
-            'res_model': 'tms.receipt.header',
-            'res_id': receipt_header.id,
-            'target': 'current',  # or 'new' to open in a new window
-        }
+    #     return {
+    #         'type': 'ir.actions.act_window',
+    #         'name': 'Receipt',
+    #         'view_mode': 'form',
+    #         'res_model': 'tms.receipt.header',
+    #         'res_id': receipt_header.id,
+    #         'target': 'current',  # or 'new' to open in a new window
+    #     }
 
     # @api.onchange('barcode')
     # def _onchange_barcode(self):

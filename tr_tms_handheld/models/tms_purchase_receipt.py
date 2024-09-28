@@ -34,6 +34,13 @@ class TMSPurchaseReceiptHeader(models.Model):
         for record in self:
             if record.state == 'submitted':
                 raise UserError("You cannot delete a purchase receipt that has been Posted.")
+            
+            reservation_entry = self.env['tms.reservation.entry'].search([
+                ('source_type', '=', '39'),
+                ('source_id', '=', self.document_no)
+            ])
+            reservation_entry.unlink()
+            
         return super(TMSPurchaseReceiptHeader, self).unlink()
     
     @api.model
@@ -44,7 +51,15 @@ class TMSPurchaseReceiptHeader(models.Model):
                 raise ValidationError('Purchase Order not found.')
 
             existing_receipts = self.env['tms.purchase.receipt.header'].search([('source_doc_no', '=', vals['source_doc_no'])])
-            receipt_count = len(existing_receipts) + 1
+            if existing_receipts:
+                receipt_numbers = [
+                    int(receipt.document_no.split('/')[-1]) for receipt in existing_receipts
+                ]
+                max_receipt_number = max(receipt_numbers)
+                receipt_count = max_receipt_number + 1
+            else:
+                receipt_count = 1
+
             vals['document_no'] = f"{vals['source_doc_no']}/Receipt/{receipt_count:03d}"
         else:
             raise ValidationError('Source Doc. No. is required.')
@@ -81,6 +96,9 @@ class TMSPurchaseReceiptHeader(models.Model):
         
         auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
 
+        #clear line update on nav
+        self.postHandheldTransAction("ClearUpdateLine")
+
         for line in self.receipt_line_ids:
             check_sn_info = False
             if line.item_no.sn_specific_tracking == True:
@@ -105,14 +123,14 @@ class TMSPurchaseReceiptHeader(models.Model):
             
             if response.status_code == 400 :
                 response_json = response.json()
-                resp = response_json.get('odata.error', {}).get('message', {}).get('value', f'Nav Error {response.text}' )
-                raise ValidationError(resp)
+                resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text )
+                raise ValidationError( f'Nav Error {resp}')
             
             if line.item_no and (check_sn_info==True):
                 self.handheld_sn()
 
         #posting - send to transaction nav
-        self.posting_receipt()
+        self.postHandheldTransAction("POReceipt")
 
         purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
         if not purchase_order:
@@ -127,9 +145,9 @@ class TMSPurchaseReceiptHeader(models.Model):
             'type': 'ir.actions.act_window',
             'target': 'current',
             'res_id': purchase_order.id,
-            'context': {
-                'create': False, 'edit': False, 'delete': False
-            }
+            # 'context': {
+            #     'create': False, 'edit': False, 'delete': False
+            # }
         }
     
     def handheld_sn(self):
@@ -174,13 +192,13 @@ class TMSPurchaseReceiptHeader(models.Model):
                 
                 if response.status_code == 400 :
                     response_json = response.json()
-                    resp = response_json.get('odata.error', {}).get('message', {}).get('value', f'Nav Error {response.text}' )
-                    raise ValidationError(resp)
+                    resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text )
+                    raise ValidationError( f'Nav Error {resp}')
               
         else:
             raise UserError('No SN/LOT Detail')
         
-    def posting_receipt(self):
+    def postHandheldTransAction(self,parAction):
         """
         Posting Receipt to NAV
         """
@@ -200,7 +218,7 @@ class TMSPurchaseReceiptHeader(models.Model):
              'Document_No': self.source_doc_no,
              "Processed_Header_ID": str(self.id),
              "Posting_Date": self.posting_date.isoformat(),
-             'Post_Action': str(1),
+             'Post_Action': parAction,
              
         }
 
@@ -208,8 +226,8 @@ class TMSPurchaseReceiptHeader(models.Model):
 
         if response.status_code == 400 :
             response_json = response.json()
-            resp = response_json.get('odata.error', {}).get('message', {}).get('value',  f'Nav Error {response.text}' )
-            raise ValidationError(resp)
+            resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text )
+            raise ValidationError( f'Nav Error {resp}')
         elif response.status_code == 201 :
            self.fnCreateMessage(f'Purchase Receive No. {self.document_no} succesfully Posted')
                                  
@@ -224,26 +242,22 @@ class TMSPurchaseReceiptHeader(models.Model):
                 'sticky': False}
         }        
 
-   
-    
 class TMSPurchaseReceiptLine(models.Model):
     _name = 'tms.purchase.receipt.line'
     _description = 'TMS Purchase Receipt line'
     
-    purchase_receipt_id = fields.Many2one('tms.purchase.receipt.header', string='Purchase Receipt')
+    purchase_receipt_id = fields.Many2one('tms.purchase.receipt.header', string='Purchase Receipt', ondelete='cascade')
     # item_no = fields.Char('Item No.', readonly=True)
     line_no = fields.Integer('Line No.', store=True)
     item_no = fields.Many2one('tms.item', string="Item No.", domain="[('id', 'in', available_item_ids)]")
     description = fields.Char('Description', readonly=True, store=True)
     quantity = fields.Float('Quantity', readonly=True, store=True)
     uom = fields.Char(string="Unit of Measure", readonly=True, store=True)
-    qty_to_receive = fields.Float('Qty To Receive',readonly=True, store=True)
+    qty_to_receive = fields.Float('Qty To Receive', store=True)
     qty_received = fields.Float('Qty Received')
     item_tracking_code = fields.Char(string='Item Tracking Code', related='item_no.item_tracking_code',store=True)
     
     available_item_ids = fields.Many2many('tms.item', compute='_compute_available_item_ids', store=False)
-
-
     
     @api.depends('purchase_receipt_id')
     def _compute_available_item_ids(self):
@@ -315,4 +329,14 @@ class TMSPurchaseReceiptLine(models.Model):
         
         # Call the super method to delete the purchase receipt line
         return super(TMSPurchaseReceiptLine, self).unlink()
+
+
+#dummy
+class TmsReceiptHeader(models.Model):
+    _name = 'tms.receipt.header'
+    _description = 'TMS Receipt Header'
+    _rec_name = 'no'
+
+    document_type = fields.Char(string='Document Type', required=True)
+    no = fields.Char(string='Receipt No.', required=True, default='New', readonly=True)
 

@@ -74,6 +74,7 @@ class TmsPurchaseOrderHeader(models.Model):
             
         action = self.env.ref('tr_tms_handheld.action_receipt_po').read()[0]
         action['domain'] = [('source_doc_no', '=', self.no)]
+        action['context'] = dict(self.env.context, create=False, edit=True)
         return action
 
 

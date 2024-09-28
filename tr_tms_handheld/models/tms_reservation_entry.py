@@ -46,6 +46,16 @@ class TMSReservationEntry(models.Model):
         when a reservation entry is deleted.
         """
         for entry in self:
+
+            purchase_receipt_header = self.env['tms.purchase.receipt.header'].search([
+                ('document_no', '=', entry.source_id)
+            ], limit=1)
+
+            # Prevent delete when purchase receipt submit
+            if purchase_receipt_header and purchase_receipt_header.state in ['submitted']:
+                raise ValidationError("You cannot delete a reservation entry when the related purchase receipt is posted or submitted.")
+            
+
             purchase_receipt_line = self.env['tms.purchase.receipt.line'].search([
                 ('item_no.no', '=', entry.item_no),
                 ('purchase_receipt_id.document_no', '=', entry.source_id)
