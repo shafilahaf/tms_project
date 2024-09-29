@@ -95,9 +95,9 @@ class TmsItem(models.Model):
     #     recordset = self.search(domain + args, limit=limit)
     #     return recordset.name_get()
     
-    def name_get(self):
-        result = []
-        for rec in self:
-            display_name = f"{rec.no} - {rec.description}"
-            result.append((rec.id, display_name))
-        return result
+    # def name_get(self):
+    #     result = []
+    #     for rec in self:
+    #         display_name = f"{rec.no} - {rec.description}"
+    #         result.append((rec.id, display_name))
+    #     return result

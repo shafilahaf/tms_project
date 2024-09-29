@@ -189,6 +189,7 @@ class TmsPurchaseLine(http.Controller):
                     'return_qty_shipped_base': line_data.get('Return Qty. Shipped (Base)'),
                     'return_reason_code': line_data.get('Return Reason Code'),
                     'notes': line_data.get('Notes'),
+                    'item_no_no': item_no,
                 }
 
                 existing_line = tms_purchase_line.search([('header_id', '=', header_id), ('line_no', '=', line_values['line_no'])])

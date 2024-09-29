@@ -21,6 +21,22 @@ class TMSHandheldReceipt(models.Model):
     company = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company, readonly=True)
     transaction_line_ids = fields.One2many('tms.handheld.transaction.line', 'handheld_transaction_id', string='Receipt Line')
     state = fields.Selection([('draft', 'Draft'), ('submitted', 'Posted')], string='Status', default='draft', required=True)
+
+    def back_to_purchase_order(self):
+        purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
+        
+        if not purchase_order:
+            raise UserError(_('No Purchase Order found with the Source Doc No: %s') % self.source_doc_no)
+
+        return {
+            'name': _('Purchase Order'),
+            'view_mode': 'form',
+            'res_model': 'tms.purchase.order.header',
+            'type': 'ir.actions.act_window',
+            'res_id': purchase_order.id,
+            'views': [(self.env.ref('tr_tms_handheld.tms_purchase_order_header_view_form').id, 'form')],
+            'target': 'main',
+        }
     
     # @api.model
     # def default_get(self, fields_list):
@@ -83,7 +99,7 @@ class TMSHandheldReceipt(models.Model):
             }
         }
         
-    def submit(self):
+    def post(self):
         """
         This method will change the status of the receipt to 'Submitted' and change quantity in line to purchase order nav
         """
@@ -109,7 +125,7 @@ class TMSHandheldReceipt(models.Model):
             elif line.item_no.lot_purchase_inbound_tracking == True:
                 check_sn_info = True
 
-            newdocno = self.document_no.replace(self.source_doc_no + '/','')
+            newdocno = self.document_no
             data = {
                 "Document_Type": "Purchase Order",
                 "Document_No": self.source_doc_no,
@@ -118,7 +134,8 @@ class TMSHandheldReceipt(models.Model):
                 "Processed_Header_ID": str(self.id),
                 "Item_No": line.item_no.no,
                 "External_Document_No" : str(self.vendor_shipment_no),
-                "Handheld_Receipt_No" : str(newdocno)
+                "Handheld_Receipt_No" : str(newdocno),
+                "Unit_Of_Measure_Code": line.item_uom.code
             }
             
             response = requests.post(url, headers=headers, auth=auth, json=data)
@@ -129,9 +146,9 @@ class TMSHandheldReceipt(models.Model):
                 raise ValidationError( f'Nav Error {resp}')
             
             if line.item_no and (check_sn_info==True):
-                self.handheld_sn()
+                self.handheld_sn(line.line_no)
 
-        #posting - send to transaction nav
+        # #posting - send to transaction nav
         self.postHandheldTransAction("POReceipt")
 
         purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
@@ -152,7 +169,7 @@ class TMSHandheldReceipt(models.Model):
             }
         }
     
-    def handheld_sn(self):
+    def handheld_sn(self,line_no):
         """
         Handheld SN ODATA
         """
@@ -166,7 +183,7 @@ class TMSHandheldReceipt(models.Model):
         auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
 
         reservation_entries = self.env['tms.reservation.entry'].search([
-            ('source_id','=',self.document_no)
+            ('source_id','=',self.document_no),('line_no','=',line_no)
         ])
         
         if reservation_entries:
@@ -183,7 +200,7 @@ class TMSHandheldReceipt(models.Model):
                 data_sn = {
                     "Processed_Header_ID": str(self.id),
                     "Line_ID": str(receipt_line.id),
-                    "Line_No": str(receipt_line.line_no),
+                    "Line_No": str(entry.line_no),
                     "Serial_No": entry.serial_no if entry.serial_no else "",
                     "Lot_No": entry.lot_no if entry.lot_no else "",
                     "Expired_Date": entry.expiration_date.isoformat() if entry.expiration_date else date.min.isoformat(),
@@ -258,11 +275,12 @@ class TMSHandheldTransactionLine(models.Model):
     item_no = fields.Many2one('tms.item', string="Item No.", domain="[('id', 'in', available_item_ids)]")
     description = fields.Char('Description', readonly=True, store=True)
     quantity = fields.Float('Quantity', readonly=True, store=True)
-    uom = fields.Char(string="Unit of Measure", readonly=True, store=True)
+    # uom = fields.Char(string="Unit of Measure", readonly=True, store=True)
+    item_uom = fields.Many2one('tms.item.uom', string="Unit of Measure", domain="[('item_no', '=', item_no_no)]")
+    item_no_no = fields.Char(string='Item Number', store=True, related='item_no.no')
     qty_to_receive = fields.Float('Qty To Process', store=True)
     qty_received = fields.Float('Qty Processed')
     item_tracking_code = fields.Char(string='Item Tracking Code', related='item_no.item_tracking_code',store=True)
-    
     available_item_ids = fields.Many2many('tms.item', compute='_compute_available_item_ids', store=False)
     
     @api.depends('handheld_transaction_id')
@@ -321,7 +339,7 @@ class TMSHandheldTransactionLine(models.Model):
         self.ensure_one()
         action = self.env.ref('tr_tms_handheld.action_tms_reservation_entry').read()[0]
         
-        action['domain'] = [('item_no', '=', self.item_no.no),
+        action['domain'] = [('item_no', '=', self.item_no.no),('line_no', '=', self.line_no),
                             ('source_id', '=', self.handheld_transaction_id.document_no)]
         
         action['context'] = dict(self.env.context, create=False, edit=False,delete = True)
@@ -336,7 +354,8 @@ class TMSHandheldTransactionLine(models.Model):
                 ('source_id', '=', line.handheld_transaction_id.document_no)
             ])
             # Delete the found reservation entries
-            reservation_entries.unlink()
+            for re in reservation_entries : 
+                re.unlink()
         
         # Call the super method to delete the purchase receipt line
         return super(TMSHandheldTransactionLine, self).unlink()

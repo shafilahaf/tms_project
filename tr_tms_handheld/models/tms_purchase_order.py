@@ -38,14 +38,15 @@ class TmsPurchaseOrderHeader(models.Model):
     return_shipment_no_series = fields.Char(string="Return Shipment No. Series", size=10)
     store_no = fields.Char(string="Store No.", size=10)
     
-
+   
     # update
     complete_received = fields.Boolean('Complete Received')
     po_reopen = fields.Boolean('Reopen')
     # update
 
     purchase_order_line_ids = fields.One2many('tms.purchase.order.line', 'header_id', string='Purchase Order Lines')
-    
+   
+
     def create_po_receipt(self):
         receipt_headerr = self.env['tms.handheld.transaction'].create({
             'source_doc_no': self.no,
@@ -128,3 +129,17 @@ class TmsPurchaseOrderLine(models.Model):
     return_reason_code = fields.Char('Return Reason Code', size=10)
     notes = fields.Text('Notes', size=100)
 
+    item_no_no = fields.Char(string='Item Number', store=True)
+ 
+    def name_get(self):
+        result = []
+        for rec in self:
+            display_name = f"{rec.line_no} - {rec.unit_of_measure_code.code}"
+            result.append((rec.id, display_name))
+        return result
+    
+    # @api.onchange('no')
+    # def _onchange_no(self):
+    #     if self.no :
+    #         self.item_no_no = self.no.no
+  

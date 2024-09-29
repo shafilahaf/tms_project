@@ -25,6 +25,7 @@
                 <button name="receipt_po" type="object" string="View Receipts" class="btn-primary"/>
                 <group>
                     <group>
+                        <field name="document_type" />
                         <field name="no" readonly="1"/>
                         <field name="buy_from_vendor_name" string="Vendor Name" readonly="1"/>
                         <field name="order_date" readonly="1"/>
@@ -44,6 +45,7 @@
                                 <field name="quantity" string="Qty." readonly="1"/>
                                 <field name="qty_to_receive" string="Qty. To Receive" readonly="1"/>
                                 <field name="qty_received" string="Qty. Received" readonly="1"/>
+                                <field name="quantity_base" />
                             </tree>
                             <form>
                                 <group>
@@ -53,6 +55,7 @@
                                     <field name="quantity"/>
                                     <field name="qty_to_receive" string="Qty. to Process"/>
                                     <field name="qty_received" string="Qty. Processed"/>
+                                    <field name="quantity_base" />
                                 </group>
                             </form>
                         </field>

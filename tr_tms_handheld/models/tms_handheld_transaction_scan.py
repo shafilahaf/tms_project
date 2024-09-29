@@ -24,9 +24,17 @@ class TMSHandheldTransactionScan(models.Model):
     contains_sn = fields.Boolean(compute='_compute_contains_sn', store=True)
     contains_lot = fields.Boolean(compute='_compute_contains_lot', store=True)
 
+    contains_lot_sn = fields.Boolean(compute='_compute_contains_snlot', store=True)
+
     serial_number = fields.Char('Serial No.')
     exp_date = fields.Date('Exp Date')
     lot_number = fields.Char('Lot No.')
+
+    item_uom = fields.Many2one('tms.item.uom', string="Unit of Measure",domain="[('item_no', '=', item_no_no)]")
+    item_no_no = fields.Char(string='Item Number', store=True)
+    line_no = fields.Many2one('tms.purchase.order.line',string ='Line No.',domain = "[('document_no', '=', source_doc_no),('item_no_no', '=', item_no_no)]")
+    source_doc_no = fields.Char('Source Doc. No.', readonly=True)
+    # available_uom_ids = fields.Many2many('tms.unit.of.measures', compute='_compute_available_uom_ids', store=False)
 
     @api.constrains('quantity')
     def _check_quantity(self):
@@ -35,7 +43,7 @@ class TMSHandheldTransactionScan(models.Model):
                 raise ValidationError(_("Quantity cannot be negative."))
 
     # SH
-    sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)    
+    sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)
 
     #barcode
     @api.onchange('sh_product_barcode_mobile')
@@ -43,6 +51,7 @@ class TMSHandheldTransactionScan(models.Model):
         if self.sh_product_barcode_mobile:
             self.parse_gs1_128_barcode(self.sh_product_barcode_mobile)
 
+ 
 
     def parse_gs1_128_barcode(self, barcode):
         barcode_2 = barcode
@@ -78,11 +87,9 @@ class TMSHandheldTransactionScan(models.Model):
                         digit_first_2 = barcode_2[:2]
                         if digit_first_2 == line.gs1_identifier:
                             barcode_3 = barcode_2[2:line.data_length]
-                            if digit_first_2 == '10' or digit_first_2 == '23': #lot
-                                self.fnCheckSNLOTArray(False,barcode_3)
+                            if digit_first_2 == '10' or digit_first_2 == '23': #lot  
                                 self.lot_number = barcode_3
                             elif digit_first_2== '21': #sn
-                                self.fnCheckSNLOTArray(barcode_3,False)
                                 self.serial_number = barcode_3
                             elif digit_first_2 == '17':
                                 self.exp_date = self.parse_exp_date(barcode_3)
@@ -93,22 +100,25 @@ class TMSHandheldTransactionScan(models.Model):
                         else:
                             barcode_2 = ''
 
+            self.fnCheckSNLOTArray(self.serial_number,self.lot_number)
+
+
     def fnCheckSNLOTArray(self, sn, lot):
         reserarray = self.reservation_entry_ids
        
-        if sn:
+        if sn and lot :
             for rsn in reserarray :
                 if rsn.serial_no == sn :
                     raise UserError(f'SN Number has {sn} been used in Lines')
-            
+        elif sn:
+            for rsn in reserarray :
+                if rsn.serial_no == sn :
+                    raise UserError(f'SN Number has {sn} been used in Lines')
         elif lot:
              for rsn in reserarray :
                 if rsn.lot_no == lot :
                     raise UserError(f'Lot Number has {lot} been used in Lines')
             
-   
-
-    
     def parse_exp_date(self, date_str):
         """Parse expiration date from barcode to a date object (assuming YYMMDD format)."""
         try:
@@ -118,23 +128,29 @@ class TMSHandheldTransactionScan(models.Model):
             raise ValidationError("Invalid expiration date format in barcode.")
 
     #barcode
-
-    
     @api.depends('item_tracking_code')
     def _compute_contains_sn(self):
         for record in self:
-            record.contains_sn = 'SN' == self.fnCheckTrackingCode()
+            record.contains_sn = 'SN' == self.fnCheckTrackingCode("SN")
     
     @api.depends('item_tracking_code')
     def _compute_contains_lot(self):
         for record in self:
-            record.contains_lot = 'LOT' == self.fnCheckTrackingCode()
+            record.contains_lot = 'LOT' == self.fnCheckTrackingCode("LOT")
+
+    @api.depends('contains_lot', 'contains_sn')
+    def _compute_contains_snlot(self):
+        for record in self:
+            if record.contains_lot and record.contains_sn:
+                record.contains_lot_sn = True
     
-    def fnCheckTrackingCode(self) :
-        if self.item_no.sn_specific_tracking  or self.item_no.sn_purchase_inbound_tracking:
-            return 'SN'
-        elif self.item_no.lot_specific_tracking or self.item_no.lot_purchase_inbound_tracking :
-            return 'LOT'
+    def fnCheckTrackingCode(self,cekApa) :
+        if cekApa == "SN" :
+            if self.item_no.sn_specific_tracking  or self.item_no.sn_purchase_inbound_tracking:
+                return 'SN'
+        elif cekApa == 'LOT' :
+            if self.item_no.lot_specific_tracking or self.item_no.lot_purchase_inbound_tracking:
+                return 'LOT'
     
 
     @api.depends('handheld_transaction_id')
@@ -155,7 +171,6 @@ class TMSHandheldTransactionScan(models.Model):
                     record.available_item_ids = [(5, 0, 0)]
             else:
                 record.available_item_ids = [(5, 0, 0)]
-
                 
     @api.onchange('item_no')
     def _onchange_item_no(self):
@@ -173,13 +188,46 @@ class TMSHandheldTransactionScan(models.Model):
                 purchase_order_line = purchase_order.purchase_order_line_ids.filtered(
                     lambda line: line.no.id == self.item_no.id
                 )
-                
+
+                # line2 = purchase_order_line[0]
+                # default_item_uom = self.item_uom.search([
+                #     ('code', '=', line2.unit_of_measure_code.code),
+                #     ('item_no', '=', line2.no.no)
+                # ])
+
                 if purchase_order_line:
                     line = purchase_order_line[0]
                     self.item_description = line.description
+                    self.item_no_no = self.item_no.no
+                    self.line_no = line.id
+                    # self.item_uom = default_item_uom.id
                 else:
                     self.item_description = False
+                    self.item_no_no = False
 
+
+            self.source_doc_no = self.handheld_transaction_id.source_doc_no
+
+    @api.onchange('line_no')
+    def _onchange_line_no(self):
+        if self.item_no and self.handheld_transaction_id:
+            purchase_order = self.env['tms.purchase.order.header'].search([
+                ('no', '=', self.handheld_transaction_id.source_doc_no)
+            ], limit=1)
+            
+            if purchase_order:
+                purchase_order_line = purchase_order.purchase_order_line_ids.filtered(
+                    lambda line: line.no.id == self.item_no.id
+                )
+
+                default_item_uom = self.item_uom.search([
+                    ('code', '=', self.line_no.unit_of_measure_code.code),
+                    ('item_no', '=', self.line_no.no.no)
+                ])
+
+                if purchase_order_line:
+                    self.item_uom = default_item_uom.id
+        
     def clear_value(self):
         """
         Clear the value of specific fields.
@@ -190,6 +238,10 @@ class TMSHandheldTransactionScan(models.Model):
         self.barcode_code = False
         self.reservation_entry_ids = [(5, 0, 0)]  # Clear the One2many field
         self.sh_product_barcode_mobile = ''
+        self.item_uom = False
+        self.serial_number = ''
+        self.lot_number = ''
+        self.line_no = False
     
     # V2
     def submit_scan_line(self):
@@ -214,7 +266,7 @@ class TMSHandheldTransactionScan(models.Model):
             raise UserError('No matching Purchase Order found.')
 
         purchase_order_line = purchase_order.purchase_order_line_ids.filtered(
-            lambda line: line.no.id == self.item_no.id
+            lambda line: line.line_no == self.line_no.line_no
         )
 
         if not purchase_order_line:
@@ -233,10 +285,7 @@ class TMSHandheldTransactionScan(models.Model):
         qty_received2 = purchase_order_line[0].qty_received if purchase_order_line else 0.0
 
         # Find or create the purchase receipt line
-        receipt_line = self.env['tms.handheld.transaction.line'].search([
-            ('handheld_transaction_id', '=', self.handheld_transaction_id.id),
-            ('item_no', '=', self.item_no.id),
-        ])
+        
 
         # # Validation to ensure qty_received does not exceed qty_to_receive
         # new_qty_to_received = (receipt_line.qty_to_receive if receipt_line else 0.0) + qty_to_receive
@@ -245,48 +294,98 @@ class TMSHandheldTransactionScan(models.Model):
         #         'Total received quantity for item %s exceeds the quantity to receive.' % self.item_no.no
         #     )
 
-        if receipt_line:
-            receipt_line.qty_to_receive += qty_to_receive
-        else:
-            receipt_line.create({
-                'handheld_transaction_id': self.handheld_transaction_id.id,
-                'item_no': self.item_no.id,
-                'description': self.item_no.description,
-                'quantity': quantity,
-                'uom': self.item_no.base_unit_of_measure_id,
-                'qty_received': qty_received2,
-                'qty_to_receive': qty_to_receive,
-                'line_no': line_no
-            })
-
-        for entry in self.reservation_entry_ids:
-            
-            #self.fnCheckSNLOTOnReceipt(entry.serial_no,entry.lot_no)
+        if self.reservation_entry_ids[0].id == False:
             receipt_line = self.env['tms.handheld.transaction.line'].search([
-            ('handheld_transaction_id', '=', self.handheld_transaction_id.id),
-            ('item_no', '=', self.item_no.id),
+                ('handheld_transaction_id', '=', self.handheld_transaction_id.id),
+                ('item_no', '=', self.item_no.id),
+                ('line_no', '=', self.line_no.line_no),
+
             ])
+            if receipt_line:
+                receipt_line.qty_to_receive += qty_to_receive
+            else:
+                iuom = False
+                if self.contains_lot or self.contains_sn:
+                    item_uom = self.item_uom.search([
+                        ('code', '=', self.item_no.base_unit_of_measure_id),
+                        ('item_no', '=', self.item_no.no)
+                    ])
+                    iuom = item_uom.id
+                else:
+                    iuom = self.item_uom.id
 
-            self.sendhandheldsnLotForCheck(entry.serial_no,entry.lot_no,line_no,receipt_line.id)
+                if iuom == False:
+                    raise UserError(f'Unit of Measure Code required for this operation cannot found in Item Unit of Measure. Item No. = {self.item_no.no}, Code={self.item_no.base_unit_of_measure_id}.')
 
-     
+                receipt_line.create({
+                    'handheld_transaction_id': self.handheld_transaction_id.id,
+                    'item_no': self.item_no.id,
+                    'description': self.item_no.description,
+                    'quantity': quantity,
+                    # 'uom': self.item_no.base_unit_of_measure_id,
+                    'item_uom': iuom,
+                    'qty_received': qty_received2,
+                    'qty_to_receive': qty_to_receive,
+                    'line_no': line_no
+                })
+        else:
+            for entry in self.reservation_entry_ids:
+                #self.fnCheckSNLOTOnReceipt(entry.serial_no,entry.lot_no)
+                receipt_line = self.env['tms.handheld.transaction.line'].search([
+                    ('handheld_transaction_id', '=', self.handheld_transaction_id.id),
+                    ('item_no', '=', entry.item_no),
+                    ('line_no', '=', entry.line_no),
+                ])
+                
+                if receipt_line:
+                   self.sendhandheldsnLotForCheck(entry.serial_no,entry.lot_no,entry.line_no,receipt_line.id)
+                   receipt_line.qty_to_receive += entry.quantity
+                else:
+                    self.sendhandheldsnLotForCheck(entry.serial_no,entry.lot_no,entry.line_no,self.handheld_transaction_id.id)
+                    
+                    item = self.env['tms.item'].search([
+                        ('no','=',entry.item_no)
+                    ])
+                    iuom = False
+                    if self.contains_lot or self.contains_sn:
+                        item_uom = self.item_uom.search([
+                            ('code', '=', item.base_unit_of_measure_id),
+                            ('item_no', '=', item.no)
+                        ])
+                        iuom = item_uom.id
+                    else:
+                        iuom = self.item_uom.id
 
-            self.env['tms.reservation.entry'].create({
-                'item_no': self.item_no.no,
-                'source_type': '39',  # Purchase Order
-                'quantity': 1 if self.contains_sn else entry.quantity,
-                'serial_no': entry.serial_no,
-                'expiration_date': entry.expiration_date,
-                'source_id': self.handheld_transaction_id.document_no,
-                'lot_no': entry.lot_no,
-                'line_id' : receipt_line.id,
-                'line_no': receipt_line.line_no
-            })
+                    if iuom == False:
+                        raise UserError(f'Unit of Measure Code required for this operation cannot found in Item Unit of Measure. Item No. = {entry.item_no.no}, Code={entry.item_no.base_unit_of_measure_id}.')
+                    
+                    receipt_line.create({
+                        'handheld_transaction_id': self.handheld_transaction_id.id,
+                        'item_no': item.id,
+                        'description': item.description,
+                        'quantity': entry.quantity,
+                        'item_uom': iuom,
+                        'qty_received': entry.quantity,
+                        'qty_to_receive': entry.quantity,
+                        'line_no': entry.line_no
+                    })
+                    
+                    self.env['tms.reservation.entry'].create({
+                        'item_no': item.no,
+                        'source_type': '39',  # Purchase Order
+                        'quantity': 1 if self.contains_sn else entry.quantity,
+                        'serial_no': entry.serial_no,
+                        'expiration_date': entry.expiration_date,
+                        'source_id': self.handheld_transaction_id.document_no,
+                        'lot_no': entry.lot_no,
+                        'line_id' : self.handheld_transaction_id.id,
+                        'line_no': entry.line_no
+                    })
 
         empty_source_entries = self.env['tms.reservation.entry'].search([
             ('source_id', '=', False)
         ])
-        
+
         empty_source_entries.unlink()
 
         self.clear_value()
@@ -362,8 +461,12 @@ class TMSHandheldTransactionScan(models.Model):
         Handle the Serial Number scan separately.
         Automatically set quantity to 1 and create a reservation entry.
         """
-        if self.serial_number:
-            self._create_serial_reservation_entry(self.serial_number,self.lot_number)
+        if self.contains_sn == True and self.contains_lot ==False  :
+            if self.serial_number:
+                self._create_serial_reservation_entry(self.serial_number,self.lot_number)
+                    
+                self.serial_number = ''
+                self.lot_number = ''
       
 
     @api.onchange('lot_number', 'quantity')
@@ -372,8 +475,14 @@ class TMSHandheldTransactionScan(models.Model):
         Handle the Lot Number scan separately.
         The quantity will be based on user input.
         """
-        if self.lot_number and self.quantity > 0:
-            self._create_serial_reservation_entry(self.serial_number,self.lot_number)
+        if self.contains_sn == False and self.contains_lot ==True  :
+            if self.lot_number and self.quantity > 0:
+                self._create_serial_reservation_entry(self.serial_number,self.lot_number)
+        elif self.contains_sn == True and self.contains_lot ==True  :
+            if self.lot_number :
+                self._create_serial_reservation_entry(self.serial_number,self.lot_number)
+            self.serial_number = ''
+            self.lot_number = ''
 
     def _create_serial_reservation_entry(self,sn,lot):
         if sn :
@@ -393,7 +502,9 @@ class TMSHandheldTransactionScan(models.Model):
             'purchase_scan_id': self.id,
             'expiration_date': self.exp_date if self.exp_date else False,
             'source_type': '39',
-            'item_no': self.item_no.id,
+            'item_no': self.item_no.no,
+            'line_no': self.line_no.line_no
+         
         })]
 
         self.lot_number = ''  # Clear after adding
@@ -409,10 +520,11 @@ class TMSHandheldTransactionScan(models.Model):
         Check if the first line of reservation_entry_ids has a serial number filled.
         """
         first_entry = self.reservation_entry_ids[:1]  # Get the first entry
-        if first_entry and first_entry.item_no !=  self.item_no:
+        if first_entry and first_entry.item_no !=  self.item_no :
                 raise UserError('You have to finished this operation before scan another item.')               
       
-                 
+         
+      
                  
                
              

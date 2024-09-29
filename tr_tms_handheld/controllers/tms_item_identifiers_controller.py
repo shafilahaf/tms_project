@@ -51,14 +51,19 @@ class TmsItemIdentifiers(http.Controller):
 
         item_var = item_variant.search([('item_no', '=', item_no), ('code', '=', variant_code)])
 
+        # item_uom = tms_uom_model.search([('code', '=', unit_of_measure_code), ('item_no','=',item_no)], limit=1)
+        # if item_uom == False:
+        #     return {
+        #         'error': "UoM not Found.",
+        #         'response': 500,
+        #     }
+        # else:
+        #     uom = uom.search([('code', '=', unit_of_measure_code)])
+
+        uom = False
         item_uom = tms_uom_model.search([('code', '=', unit_of_measure_code), ('item_no','=',item_no)], limit=1)
-        if item_uom == False:
-            return {
-                'error': "UoM not Found.",
-                'response': 500,
-            }
-        else:
-            uom = uom.search([('code', '=', unit_of_measure_code)])
+        if item_uom:
+            uom = item_uom.id
 
 
         item_record = item.search([('no', '=', item_no)], limit=1)
@@ -67,14 +72,13 @@ class TmsItemIdentifiers(http.Controller):
                 'error': "Item not Found.",
                 'response': 500,
             }
-
-
+    
         if tms_item_identifiers.search([('entry_no', '=', entry_no)]):
             item_identifier = tms_item_identifiers.search([('entry_no', '=', entry_no)])
             item_identifier.write({
                 'item_no': item_record.id,
                 'variant_code': item_var.id if variant_code else False,
-                'unit_of_measure_code': uom.id,
+                'unit_of_measure_code': uom,#uom.id,
                 'barcode_type': barcode_type,
                 'sh_product_barcode_mobile':  str(barcode_code),
                 'entry_no':int(entry_no),
@@ -88,7 +92,7 @@ class TmsItemIdentifiers(http.Controller):
         tms_item_identifiers.create({
             'item_no': item_record.id,
             'variant_code': item_var.id if variant_code else False,
-            'unit_of_measure_code': uom.id,
+            'unit_of_measure_code': uom,
             'barcode_type': barcode_type,
             'sh_product_barcode_mobile': str(barcode_code),
             'entry_no': int(entry_no),

@@ -42,6 +42,7 @@ class TMSReservationEntry(models.Model):
             }
             record.source_type_int = source_type_map.get(record.source_type, 0)
     
+    
     def unlink(self):
         """
         Override the unlink method to update qty_to_receive in tms.handheld.transaction.line 
@@ -74,7 +75,7 @@ class TMSReservationEntry(models.Model):
                     purchase_receipt_line.qty_to_receive = sum(remaining_reservation_entries.mapped('quantity'))
                     abcd = sum(remaining_reservation_entries.mapped('quantity'))
                     print(abcd)
-                else:
+                else: 
                     purchase_receipt_line.qty_to_receive = 0.0
 
             if entry.source_id :
