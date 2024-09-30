@@ -20,7 +20,11 @@
         <field name="model">tms.sales.order.header</field>
         <field name="arch" type="xml">
             <form string="">
+                <header>
+                    <button name="create_transaction_header" string="Create Shipment" type="object" class="oe_highlight"/>
+                </header>
                 <sheet>
+                    <button name="view_transaction_header" type="object" string="View Shipment" class="btn-primary"/>
                     <group string="Document Information">
                         <field name="no" />
                         <field name="document_type" />
@@ -28,6 +32,7 @@
                         <field name="posting_date" />
                         <field name="shipment_date" />
                         <field name="status" />
+                        <field name="complete_shipment" />
                     </group>
                     <group string="Customer Information">
                         <group>

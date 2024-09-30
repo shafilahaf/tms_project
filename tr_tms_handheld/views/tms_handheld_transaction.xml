@@ -29,7 +29,7 @@
                     <div class="oe_button_group" style="margin-bottom: 15px;">
                         <button name="scan_itemm" string="Scan Item" type="object" class="oe_highlight" attrs ="{'invisible':[('state','=', 'submitted')]}"/>
                         <button name="post" string="Post" type="object" class="oe_highlight" style="margin-left: 10px;" attrs ="{'invisible':[('state','=', 'submitted')]}"/>
-                        <button name="back_to_purchase_order" string="Back to PO" style="margin-left: 10px;" type="object" class="oe_highlight"/>
+                        <button name="back_to_transaction" string="Back to Transaction" style="margin-left: 10px;" type="object" class="oe_highlight"/>
                     </div>
                     <group col="2">
                         <group>
@@ -117,6 +117,7 @@
                     <div class="oe_button_group" style="margin-bottom: 15px;">
                         <button name="scan_itemm" string="Scan Item" type="object" class="oe_highlight" />
                         <button name="post" string="Post" type="object" class="oe_highlight" style="margin-left: 10px;" />
+                        <button name="back_to_transaction" string="Back to Transaction" style="margin-left: 10px;" type="object" class="oe_highlight"/>
                     </div>
                     <group col="2">
                         <group>

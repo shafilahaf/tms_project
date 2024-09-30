@@ -56,6 +56,7 @@ class TmssalesHeader(http.Controller):
             status = data.get('Status')
             return_receipt_no_series = data.get('Return Receipt No. Series')
             store_no = data.get('Store No.')
+            complete_shipment = data.get('Complete Shipment')
 
             tms_sales = request.env['tms.sales.order.header'].sudo()
             sales_order = tms_sales.search([('document_type', '=', document_type), ('no', '=', no)])
@@ -87,7 +88,8 @@ class TmssalesHeader(http.Controller):
                     'shipping_no_series': shipping_no_series,
                     'status': status,
                     'return_receipt_no_series': return_receipt_no_series,
-                    'store_no': store_no
+                    'store_no': store_no,
+                    'complete_shipment': False if complete_shipment == "false" else True,
                 })
             else:
                 sales_order = tms_sales.create({
@@ -116,7 +118,8 @@ class TmssalesHeader(http.Controller):
                     'shipping_no_series': shipping_no_series,
                     'status': status,
                     'return_receipt_no_series': return_receipt_no_series,
-                    'store_no': store_no
+                    'store_no': store_no,
+                    'complete_shipment': False if complete_shipment == "false" else True,
                 })
 
             return {

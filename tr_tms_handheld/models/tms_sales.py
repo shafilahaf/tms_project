@@ -5,13 +5,10 @@ from odoo.exceptions import UserError, ValidationError
 class TmsSalesHeader(models.Model):
     _name = "tms.sales.order.header"
     _description = "TMS Sales Header"
+    _rec_no = 'no'
 
     document_type = fields.Selection([
-        ('Quote', 'Quote'),
         ('Order', 'Order'),
-        ('Invoice', 'Invoice'),
-        ('Credit Memo', 'Credit Memo'),
-        ('Blanket Order', 'Blanket Order'),
         ('Return Order', 'Return Order')
     ], string="Document Type")
     sell_to_customer_no = fields.Char(string="Sell-to Customer No.",  size=20)
@@ -44,12 +41,22 @@ class TmsSalesHeader(models.Model):
     ], string="Status")
     return_receipt_no_series = fields.Char(string="Return Receipt No. Series", size=10)
     store_no = fields.Char(string="Store No.", size=10)
+    complete_shipment = fields.Boolean('Complete Shipment')
     
 
     sales_line_ids = fields.One2many(
         "tms.sales.order.line", "header_id", string="Sales Lines"
     )
 
+    def create_transaction_header(self):
+        trans_header = self.env['tms.handheld.transaction']
+        action = trans_header.create_transaction(self.no,'Sales',self.document_type)
+        return action
+    
+    def view_transaction_header(self):
+        trans_header = self.env['tms.handheld.transaction']
+        action =  trans_header.view_transaction(self.no,'Sales',self.document_type)
+        return action
 
 class TmsSalesLine(models.Model):
     _name = "tms.sales.order.line"

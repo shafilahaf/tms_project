@@ -1,4 +1,4 @@
-odoo.define('sh_product_barcode_mobile.notification_manager', function (require) {
+odoo.define('tr_tms_handheld.notification_manager', function (require) {
     "use strict";
 
     var AbstractService = require('web.AbstractService');
@@ -32,7 +32,7 @@ odoo.define('sh_product_barcode_mobile.notification_manager', function (require)
                         	payload.message = payload.message.replace("SH_BARCODE_MOBILE_SUCCESS_", "");
 
                             //play sound
-                            var src = "/sh_product_barcode_mobile/static/src/sounds/picked.wav";
+                            var src = "/tr_tms_handheld/static/src/sounds/picked.wav";
                             $("body").append('<audio src="' + src + '" autoplay="true"></audio>');
                         }
                         //for play sound ends here
@@ -45,7 +45,7 @@ odoo.define('sh_product_barcode_mobile.notification_manager', function (require)
                         	payload.message = payload.message.replace("SH_BARCODE_MOBILE_FAIL_", "");
 
                             //play sound
-                            var src = "/sh_product_barcode_mobile/static/src/sounds/error.wav";
+                            var src = "/tr_tms_handheld/static/src/sounds/error.wav";
                             $("body").append('<audio src="' + src + '" autoplay="true"></audio>');
                         }
                         //for play sound ends here  
@@ -64,7 +64,7 @@ odoo.define('sh_product_barcode_mobile.notification_manager', function (require)
                         	payload.message = payload.message.replace("SH_BARCODE_MOBILE_SUCCESS_", "");
 
                             //play sound
-                            var src = "/sh_product_barcode_mobile/static/src/sounds/picked.wav";
+                            var src = "/tr_tms_handheld/static/src/sounds/picked.wav";
                             $("body").append('<audio src="' + src + '" autoplay="true"></audio>');
                         }
                         //for play sound ends here
@@ -77,7 +77,7 @@ odoo.define('sh_product_barcode_mobile.notification_manager', function (require)
                         	payload.message = payload.message.replace("SH_BARCODE_MOBILE_FAIL_", "");
 
                             //play sound
-                            var src = "/sh_product_barcode_mobile/static/src/sounds/error.wav";
+                            var src = "/tr_tms_handheld/static/src/sounds/error.wav";
                             $("body").append('<audio src="' + src + '" autoplay="true"></audio>');
                         }
                         //for play sound ends here  

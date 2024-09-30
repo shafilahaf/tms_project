@@ -44,6 +44,7 @@ class TMSHandheldTransactionScan(models.Model):
 
     # SH
     sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)
+    # SH
 
     #barcode
     @api.onchange('sh_product_barcode_mobile')
@@ -285,7 +286,6 @@ class TMSHandheldTransactionScan(models.Model):
         qty_received2 = purchase_order_line[0].qty_received if purchase_order_line else 0.0
 
         # Find or create the purchase receipt line
-        
 
         # # Validation to ensure qty_received does not exceed qty_to_receive
         # new_qty_to_received = (receipt_line.qty_to_receive if receipt_line else 0.0) + qty_to_receive
@@ -294,7 +294,12 @@ class TMSHandheldTransactionScan(models.Model):
         #         'Total received quantity for item %s exceeds the quantity to receive.' % self.item_no.no
         #     )
 
-        if self.reservation_entry_ids[0].id == False:
+        
+        res_source_entries = self.env['tms.reservation.entry'].search([
+            ('source_id', '=', False),('purchase_scan_id','=',self.id),
+        ])
+
+        if res_source_entries.id == False:
             receipt_line = self.env['tms.handheld.transaction.line'].search([
                 ('handheld_transaction_id', '=', self.handheld_transaction_id.id),
                 ('item_no', '=', self.item_no.id),
@@ -329,7 +334,7 @@ class TMSHandheldTransactionScan(models.Model):
                     'line_no': line_no
                 })
         else:
-            for entry in self.reservation_entry_ids:
+            for entry in res_source_entries:
                 #self.fnCheckSNLOTOnReceipt(entry.serial_no,entry.lot_no)
                 receipt_line = self.env['tms.handheld.transaction.line'].search([
                     ('handheld_transaction_id', '=', self.handheld_transaction_id.id),
@@ -340,6 +345,33 @@ class TMSHandheldTransactionScan(models.Model):
                 if receipt_line:
                    self.sendhandheldsnLotForCheck(entry.serial_no,entry.lot_no,entry.line_no,receipt_line.id)
                    receipt_line.qty_to_receive += entry.quantity
+                   
+                   item = self.env['tms.item'].search([
+                        ('no','=',entry.item_no)
+                    ])
+                   iuom = False
+                   if self.contains_lot or self.contains_sn:
+                        item_uom = self.item_uom.search([
+                            ('code', '=', item.base_unit_of_measure_id),
+                            ('item_no', '=', item.no)
+                        ])
+                        iuom = item_uom.id
+                   else:
+                        iuom = self.item_uom.id
+                   if iuom == False:
+                        raise UserError(f'Unit of Measure Code required for this operation cannot found in Item Unit of Measure. Item No. = {item.no}, Code={item.base_unit_of_measure_id}.')
+
+                   self.env['tms.reservation.entry'].create({
+                        'item_no': item.no,
+                        'source_type': '39',  # Purchase Order
+                        'quantity': 1 if self.contains_sn else entry.quantity,
+                        'serial_no': entry.serial_no,
+                        'expiration_date': entry.expiration_date,
+                        'source_id': self.handheld_transaction_id.document_no,
+                        'lot_no': entry.lot_no,
+                        'line_id' : self.handheld_transaction_id.id,
+                        'line_no': entry.line_no
+                    })
                 else:
                     self.sendhandheldsnLotForCheck(entry.serial_no,entry.lot_no,entry.line_no,self.handheld_transaction_id.id)
                     
@@ -357,7 +389,7 @@ class TMSHandheldTransactionScan(models.Model):
                         iuom = self.item_uom.id
 
                     if iuom == False:
-                        raise UserError(f'Unit of Measure Code required for this operation cannot found in Item Unit of Measure. Item No. = {entry.item_no.no}, Code={entry.item_no.base_unit_of_measure_id}.')
+                        raise UserError(f'Unit of Measure Code required for this operation cannot found in Item Unit of Measure. Item No. = {item.no}, Code={item.base_unit_of_measure_id}.')
                     
                     receipt_line.create({
                         'handheld_transaction_id': self.handheld_transaction_id.id,

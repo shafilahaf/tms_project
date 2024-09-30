@@ -13,7 +13,7 @@ class TMSHandheldReceipt(models.Model):
     _description = 'TMS Handheld Transaction'
     _rec_name = 'document_no'
     
-    document_type = fields.Selection([('1', 'Purchase Receipt Order'), ('2', 'Purchase Return Shipment')], string='Document Type')
+    document_type = fields.Selection([('1', 'Purchase Receipt Order'), ('2', 'Purchase Return Shipment'),('3', 'Sales Shipment Order'), ('4', 'Sales Return Receipt')], string='Document Type')
     document_no = fields.Char('Document No.', readonly=True)
     source_doc_no = fields.Char('Source Doc. No.', readonly=True)
     posting_date = fields.Date('Posting Date')
@@ -21,30 +21,35 @@ class TMSHandheldReceipt(models.Model):
     company = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company, readonly=True)
     transaction_line_ids = fields.One2many('tms.handheld.transaction.line', 'handheld_transaction_id', string='Receipt Line')
     state = fields.Selection([('draft', 'Draft'), ('submitted', 'Posted')], string='Status', default='draft', required=True)
+    noseries_count = fields.Integer(string = 'No Series Count')
 
-    def back_to_purchase_order(self):
-        purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
+    def back_to_transaction(self):
+        if self.document_type in ['1', '2']:
+            trans = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
+            title = "Purchase"
+            model = 'tms.purchase.order.header'
+            ref_view = 'tms_purchase_order_header_view_form'
+            if not trans:
+                raise UserError(_('No Purchase Order found with the Source Doc No: %s') % self.source_doc_no)
+        elif self.document_type in ['3','4']:
+            trans = self.env['tms.sales.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
+            title = "Sales"
+            model = 'tms.sales.order.header'
+            ref_view = 'tms_sales_header_view_form'
+            if not trans:
+                raise UserError(_('No Sales Order found with the Source Doc No: %s') % self.source_doc_no)
         
-        if not purchase_order:
-            raise UserError(_('No Purchase Order found with the Source Doc No: %s') % self.source_doc_no)
-
-        return {
-            'name': _('Purchase Order'),
+        page = {
+            'name': f"{title}",
             'view_mode': 'form',
-            'res_model': 'tms.purchase.order.header',
+            'res_model': f"{model}",
             'type': 'ir.actions.act_window',
-            'res_id': purchase_order.id,
-            'views': [(self.env.ref('tr_tms_handheld.tms_purchase_order_header_view_form').id, 'form')],
+            'res_id': trans.id,
+            'views': [(self.env.ref(f'tr_tms_handheld.{ref_view}').id, 'form')],
             'target': 'main',
         }
+        return page
     
-    # @api.model
-    # def default_get(self, fields_list):
-    #     res = super(TMSHandheldReceipt, self).default_get(fields_list)
-    #     if not self.env.context.get('default_id'):
-    #         print("Form is being opened.")
-    #     return res
-
     def unlink(self):
         for record in self:
             if record.state == 'submitted':
@@ -61,26 +66,44 @@ class TMSHandheldReceipt(models.Model):
     @api.model
     def create(self, vals):
         if 'source_doc_no' in vals and vals['source_doc_no']:
-            purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', vals['source_doc_no'])], limit=1)
-            if not purchase_order:
-                raise ValidationError('Purchase Order not found.')
+            doctypesource = self.fnCheckDocTypeSource(vals)
+            if self.document_type in ['1','2']:
+                purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', vals['source_doc_no']),('document_type','=',doctypesource)], limit=1)
+                if not purchase_order:
+                    raise ValidationError('Purchase Order not found.')
+            elif self.document_type in ['3','4']:
+                sales_order = self.env['tms.sales.order.header'].search([('no', '=', vals['source_doc_no']),('document_type','=',doctypesource)], limit=1)
+                if not sales_order:
+                    raise ValidationError('Sales Order not found.')
 
-            existing_receipts = self.env['tms.handheld.transaction'].search([('source_doc_no', '=', vals['source_doc_no'])])
-            if existing_receipts:
-                receipt_numbers = [
-                    int(receipt.document_no.split('/')[-1]) for receipt in existing_receipts
-                ]
-                max_receipt_number = max(receipt_numbers)
-                receipt_count = max_receipt_number + 1
-            else:
-                receipt_count = 1
-
-            vals['document_no'] = f"{vals['source_doc_no']}/Receipt/{receipt_count:03d}"
+            self.fnCreateDocNo(vals)
         else:
             raise ValidationError('Source Doc. No. is required.')
 
         return super(TMSHandheldReceipt, self).create(vals)
     
+    def fnCreateDocNo(self,vals) : 
+        existing_trans = self.env['tms.handheld.transaction'].search([('source_doc_no', '=', vals['source_doc_no']),('document_type','=',vals["document_type"])],order = 'id desc',limit=1)
+        if existing_trans:
+            # trans_numbers = [
+            #     int(trans.document_no.split('-')[-1]) for trans in existing_trans
+            # ]
+    
+            max_trans_number = existing_trans.noseries_count
+            vals['noseries_count'] = max_trans_number + 1
+        else:
+            vals['noseries_count'] = 1       
+
+        if vals["document_type"] in ["1","4"] :
+            title = "Receipt"
+        elif vals["document_type"] in ["2","3"] :
+            title = "Shipment"
+
+        vals['document_no'] = f"{vals['source_doc_no']}-{title}-{vals['noseries_count']:03d}"
+
+        return vals
+
+
     def scan_itemm(self):
         self.ensure_one()
         scan_item = self.env['tms.handheld.transaction.scan'].create({
@@ -126,8 +149,9 @@ class TMSHandheldReceipt(models.Model):
                 check_sn_info = True
 
             newdocno = self.document_no
+            doctype = self.fnCheckDocType()
             data = {
-                "Document_Type": "Purchase Order",
+                "Document_Type": doctype,
                 "Document_No": self.source_doc_no,
                 "Line_No": str(line.line_no),
                 "Quantity": str(line.qty_to_receive),
@@ -149,14 +173,13 @@ class TMSHandheldReceipt(models.Model):
                 self.handheld_sn(line.line_no)
 
         # #posting - send to transaction nav
-        self.postHandheldTransAction("POReceipt")
+        self.postHandheldTransAction("Purchase")
 
         purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
         if not purchase_order:
             raise ValidationError('Related Purchase Order not found.')
         
-        self.state = 'submitted'
-      
+    
         return {
             'name': 'Purchase Order',
             'view_mode': 'form',
@@ -204,7 +227,8 @@ class TMSHandheldReceipt(models.Model):
                     "Serial_No": entry.serial_no if entry.serial_no else "",
                     "Lot_No": entry.lot_no if entry.lot_no else "",
                     "Expired_Date": entry.expiration_date.isoformat() if entry.expiration_date else date.min.isoformat(),
-                    "Quantity": str(entry.quantity)
+                    "Quantity": str(entry.quantity),
+                    "Document_Type" : self.document_type
                 }
                 
                 response = requests.post(url, headers=headers, auth=auth, json=data_sn)
@@ -232,8 +256,10 @@ class TMSHandheldReceipt(models.Model):
         if self.posting_date == False:
             raise UserError('Please enter the Posting Date before submit')
 
+        doctype = self.fnCheckDocType()
+      
         data2 = {
-             'Document_Type': "Purchase Order",
+             'Document_Type': doctype,
              'Document_No': self.source_doc_no,
              "Processed_Header_ID": str(self.id),
              "Posting_Date": self.posting_date.isoformat(),
@@ -248,9 +274,36 @@ class TMSHandheldReceipt(models.Model):
             resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text )
             raise ValidationError( f'Nav Error {resp}')
         elif response.status_code == 201 :
+           self.state = 'submitted'
            message = f'Purchase Receive No. {self.document_no} succesfully Posted'
            self.fnCreateMessage(message)
                                  
+
+    def fnCheckDocType(self) :
+        if self.document_type == "1":
+            doctype = "Purchase Order"
+        elif self.document_type == "2":
+            doctype = "Purchase Return"
+        elif self.document_type  =="3":
+            doctype = "Sales Order"
+        elif self.document_type  == "4":
+            doctype = "Sales  Return"
+
+        return doctype
+    
+    def fnCheckDocTypeSource(self,vals) :
+        if len(vals) == 0 :
+            if self.document_type in ["1","3"]:
+                doctype = "Order"
+            elif self.document_type in ["2","4"]:
+                doctype = "Return Order"
+        else : 
+            if vals["document_type"] in ["1","3"]:
+                doctype = "Order"
+            elif  vals["document_type"]  in ["2","4"]:
+                doctype = "Return Order"
+
+        return doctype
 
     def fnCreateMessage(self,message) :
         notification = {
@@ -264,6 +317,59 @@ class TMSHandheldReceipt(models.Model):
         }
         }
         return notification
+
+    #Global Function
+    def create_transaction(self,sourcno,docsource,doctype):
+        if docsource == "Purchase" :
+            if doctype == "Order" :
+                doctype = "1"
+                pagename = "Receipt"
+            elif doctype == "Return Order" :
+                doctype = "2"
+                pagename = "Shipment"
+        elif docsource == "Sales" :
+            if doctype == "Order" :
+                doctype = "3"
+                pagename = "Shipment"
+            elif doctype == "Return Order" :
+                doctype = "4"
+                pagename = "Receipt"
+            
+        trans_header = self.env['tms.handheld.transaction'].create({
+            'source_doc_no': sourcno,
+            'document_type':doctype
+        })
+
+        page = {
+            'name': pagename,
+            'view_mode': 'form',
+            'res_model': 'tms.handheld.transaction',
+            'type': 'ir.actions.act_window',
+            'target': 'current',
+            'res_id': trans_header.id,
+            'views': [(self.env.ref('tr_tms_handheld.purchase_receipt_2_view_form').id, 'form')],
+            'context': {
+                'create': True, 'edit': True, 'delete': True
+            }
+        }
+        return page
+
+    def view_transaction(self,sourcno,docsource,doctype):
+        if docsource == "Purchase" :
+            if doctype == "Order" :
+                doctype = "1"
+            elif doctype == "Return Order" :
+                doctype = "2"
+        elif docsource == "Sales" :
+            if doctype == "Order" :
+                doctype = "3"
+            elif doctype == "Return Order" :
+                doctype = "4"
+               
+        action = self.env.ref('tr_tms_handheld.action_receipt_po').read()[0]
+        action['domain'] = [('source_doc_no', '=', sourcno),('document_type','=',doctype)]
+        action['context'] = dict(self.env.context, create=False, edit=True)
+        return action
 
 class TMSHandheldTransactionLine(models.Model):
     _name = 'tms.handheld.transaction.line'
@@ -368,4 +474,6 @@ class TmsReceiptHeader(models.Model):
 
     document_type = fields.Char(string='Document Type', required=True)
     no = fields.Char(string='Receipt No.', required=True, default='New', readonly=True)
+
+
 

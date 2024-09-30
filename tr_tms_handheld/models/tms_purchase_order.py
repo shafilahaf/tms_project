@@ -48,37 +48,14 @@ class TmsPurchaseOrderHeader(models.Model):
    
 
     def create_po_receipt(self):
-        receipt_headerr = self.env['tms.handheld.transaction'].create({
-            'source_doc_no': self.no,
-            'document_type':"1"
-        })
-
-        return {
-            'name': 'Receipt',
-            'view_mode': 'form',
-            'res_model': 'tms.handheld.transaction',
-            'type': 'ir.actions.act_window',
-            'target': 'current',
-            'res_id': receipt_headerr.id,
-            'views': [(self.env.ref('tr_tms_handheld.purchase_receipt_2_view_form').id, 'form')],
-            'context': {
-                'create': True, 'edit': True, 'delete': True
-            }
-        }
-
-    def receipt_po(self):
-        # empty_receipts = self.env['tms.handheld.transaction'].create({
-        #     ('source_doc_no', '=', self.no),
-        #     ('receipt_line_ids', '=', False)
-        # })
-        # if empty_receipts:
-        #     empty_receipts.unlink()
-            
-        action = self.env.ref('tr_tms_handheld.action_receipt_po').read()[0]
-        action['domain'] = [('source_doc_no', '=', self.no)]
-        action['context'] = dict(self.env.context, create=False, edit=True)
+        trans_header = self.env['tms.handheld.transaction']
+        action = trans_header.create_transaction(self.no,'Purchase',self.document_type)
         return action
     
+    def receipt_po(self):
+        trans_header = self.env['tms.handheld.transaction']
+        action =  trans_header.view_transaction(self.no,'Purchase',self.document_type)
+        return action
 
 class TmsPurchaseOrderLine(models.Model):
     _name = 'tms.purchase.order.line'
