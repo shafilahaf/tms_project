@@ -138,9 +138,10 @@ class TmsSalesLine(http.Controller):
     @validate_token
     @http.route('/api/tms_sales_order_line', auth='public', methods=['POST'], csrf=False, type='json')
     def create_sales_order_line(self, **kw):
-        try:
+        # try:
             data = request.jsonrequest
             header_id = data.get('header_id')
+            header_id_int = int(header_id)
             sales_order_lines = data.get('Sales_Order_Lines', [])
             
             print()
@@ -162,11 +163,11 @@ class TmsSalesLine(http.Controller):
             # Create or update sales order lines
             for line_data in sales_order_lines:
                 line_values = {
-                    'header_id': sales_order.id,
+                    'header_id': header_id,
                     'line_no': line_data.get('Line No.'),
-                    'document_type': sales_order.document_type,
+                    'document_type': line_data.get('Document Type'),
                     'sell_to_customer_no': line_data.get('Sell-to Customer No.'),
-                    'document_no': sales_order.no,
+                    'document_no': line_data.get('Document No.'),
                     'type': line_data.get('Type'),
                     'no': line_data.get('No.'),
                     'location_code': line_data.get('Location Code'),
@@ -195,7 +196,7 @@ class TmsSalesLine(http.Controller):
                     'return_qty_received_base': line_data.get('Return Qty. Received (Base)'),
                     'return_reason_code': line_data.get('Return Reason Code'),
                 }
-                existing_line = request.env['tms.sales.order.line'].sudo().search([('header_id', '=', sales_order.id), ('line_no', '=', line_values['line_no'])])
+                existing_line = request.env['tms.sales.order.line'].sudo().search([('header_id', '=', header_id), ('line_no', '=', line_values['line_no'])])
                 if existing_line:
                     existing_line.write(line_values)
                 else:
@@ -205,9 +206,9 @@ class TmsSalesLine(http.Controller):
                 'message': 'Sales Order Lines created/updated successfully',
                 'response': 200
             }
-        except Exception as e:
-            _logger.error("Error creating Sales Order Lines: %s", e)
-            return {
-                'error': str(e),
-                'response': 500
-            }
+        # except Exception as e:
+        #     _logger.error("Error creating Sales Order Lines: %s", e)
+        #     return {
+        #         'error': str(e),
+        #         'response': 500
+        #     }

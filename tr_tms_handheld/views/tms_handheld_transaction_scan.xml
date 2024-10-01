@@ -40,8 +40,10 @@
                             </div>
                         </section>
                         <field name="item_no" options="{'no_create': True, 'no_create_edit':True}"/>
-                        <field name="line_no" force_save="1"/>
+                        <field name="line_no" force_save="1" attrs ="{'invisible':[('handheld_document_type','not in', ['1','2'])]}"/>
+                        <field name="lino_so" force_save="1" attrs ="{'invisible':[('handheld_document_type','not in', ['3','4'])]}"/>
                         <field name="item_description" force_save="1"/>
+                        <field name="handheld_document_type" invisible="1"/>
 
                         <field name="serial_number" attrs="{'invisible': [('contains_sn','=',False)]}"/>
                         <script type="text/javascript" src="/tr_tms_handheld/static/src/js/serial_number.js"></script>

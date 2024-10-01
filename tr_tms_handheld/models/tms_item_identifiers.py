@@ -24,12 +24,44 @@ class TmsItemIdentifiers(models.Model):
         ('2','EAN'),
         ('3', 'QR')
     ], string='Barcode type', required=True)
-    #barcode_code = fields.Char(string="Barcode Code", store=True, required=True)
     entry_no = fields.Integer(string="Entry No")
     item_identifiers_line_ids = fields.One2many('tms.item.identifiers.line', 'header_id', string='Item Identifier Line')
     need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")
     from_nav = fields.Boolean(string="From NAV")
     sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)
+
+    @api.onchange('sh_product_barcode_mobile')
+    def _onchange_sh_product_barcode_mobile(self):
+        if self.sh_product_barcode_mobile:
+            # Define sound codes
+            CODE_SOUND_SUCCESS = ""
+            CODE_SOUND_FAIL = ""
+
+            # Check company settings for sound notifications
+            if self.env.company.sudo().sh_product_bm_is_sound_on_success:
+                CODE_SOUND_SUCCESS = "SH_BARCODE_MOBILE_SUCCESS_"
+
+            if self.env.company.sudo().sh_product_bm_is_sound_on_fail:
+                CODE_SOUND_FAIL = "SH_BARCODE_MOBILE_FAIL_"
+
+            # Send notification sound for success
+            if self.env.company.sudo().sh_product_bm_is_notify_on_success:
+                message = _(CODE_SOUND_SUCCESS + 'Scanned Barcode: %s') % self.sh_product_barcode_mobile
+                self.env['bus.bus']._sendone(
+                    self.env.user.partner_id,
+                    'sh_product_barcode_mobile_notification_info', {
+                        'title': _("Succeed"),
+                        'message': message,
+                    })
+        else:
+            if self.env.company.sudo().sh_product_bm_is_notify_on_fail:
+                message = _(CODE_SOUND_FAIL + 'No barcode provided!')
+                self.env['bus.bus']._sendone(
+                    self.env.user.partner_id,
+                    'sh_product_barcode_mobile_notification_danger', {
+                        'title': _("Failed"),
+                        'message': message,
+                    })
 
     # barcode
     @api.onchange('sh_product_barcode_mobile', 'barcode_type')

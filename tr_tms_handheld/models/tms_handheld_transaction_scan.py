@@ -23,7 +23,6 @@ class TMSHandheldTransactionScan(models.Model):
 
     contains_sn = fields.Boolean(compute='_compute_contains_sn', store=True)
     contains_lot = fields.Boolean(compute='_compute_contains_lot', store=True)
-
     contains_lot_sn = fields.Boolean(compute='_compute_contains_snlot', store=True)
 
     serial_number = fields.Char('Serial No.')
@@ -33,7 +32,9 @@ class TMSHandheldTransactionScan(models.Model):
     item_uom = fields.Many2one('tms.item.uom', string="Unit of Measure",domain="[('item_no', '=', item_no_no)]")
     item_no_no = fields.Char(string='Item Number', store=True)
     line_no = fields.Many2one('tms.purchase.order.line',string ='Line No.',domain = "[('document_no', '=', source_doc_no),('item_no_no', '=', item_no_no)]")
+    lino_so = fields.Many2one('tms.sales.order.line', string="Line No.", domain = "[('document_no', '=', source_doc_no),('no', '=', item_no_no)]")
     source_doc_no = fields.Char('Source Doc. No.', readonly=True)
+    handheld_document_type = fields.Selection([('1', 'Purchase Receipt Order'), ('2', 'Purchase Return Shipment'),('3', 'Sales Shipment Order'), ('4', 'Sales Return Receipt')], string='Document Type')
     # available_uom_ids = fields.Many2many('tms.unit.of.measures', compute='_compute_available_uom_ids', store=False)
 
     @api.constrains('quantity')
@@ -161,17 +162,35 @@ class TMSHandheldTransactionScan(models.Model):
         """
         for record in self:
             if record.handheld_transaction_id:
-                purchase_order = self.env['tms.purchase.order.header'].search([
-                    ('no', '=', record.handheld_transaction_id.source_doc_no)
-                ], limit=1)
-                if purchase_order:
-                    # Get IDs of available items
-                    item_ids = purchase_order.purchase_order_line_ids.mapped('no.id')
-                    record.available_item_ids = [(6, 0, item_ids)]
-                else:
-                    record.available_item_ids = [(5, 0, 0)]
+                if record.handheld_transaction_id.document_type in ['1','2']:
+                    purchase_order = self.env['tms.purchase.order.header'].search([
+                        ('no', '=', record.handheld_transaction_id.source_doc_no)
+                    ], limit=1)
+                    if purchase_order:
+                        # Get IDs of available items
+                        item_ids = purchase_order.purchase_order_line_ids.mapped('no.id')
+                        record.available_item_ids = [(6, 0, item_ids)]
+                    else:
+                        record.available_item_ids = [(5, 0, 0)]
+                elif record.handheld_transaction_id.document_type in ['3','4']:
+                    sales_order = self.env['tms.sales.order.header'].search([
+                        ('no', '=', record.handheld_transaction_id.source_doc_no)
+                    ], limit=1)
+                    if sales_order:
+                        item_nos = sales_order.sales_line_ids.mapped('no')
+                        if item_nos:
+                            items = self.env['tms.item'].search([('no', 'in',item_nos)])
+                            item_ids = items.mapped('id')
+                            record.available_item_ids = [(6, 0, item_ids)]
+                        else:
+                            # Fallback to mapping 'no' if no matching items are found
+                            item_ids = sales_order.sales_line_ids.mapped('no')
+                            record.available_item_ids = [(6, 0, item_ids)]
+                    else:
+                        record.available_item_ids = [(5, 0, 0)]
             else:
                 record.available_item_ids = [(5, 0, 0)]
+                
                 
     @api.onchange('item_no')
     def _onchange_item_no(self):
@@ -179,34 +198,53 @@ class TMSHandheldTransactionScan(models.Model):
         Auto fill Description onchange item no
         """ 
         if self.item_no and self.handheld_transaction_id:
-            self._check_first_line_detail()
-            purchase_order = self.env['tms.purchase.order.header'].search([
-                ('no', '=', self.handheld_transaction_id.source_doc_no)
-            ], limit=1)
-            
-            if purchase_order:
-                # Filter the purchase order lines
-                purchase_order_line = purchase_order.purchase_order_line_ids.filtered(
-                    lambda line: line.no.id == self.item_no.id
-                )
+            self.handheld_document_type =  self.handheld_transaction_id.document_type
+            if self.handheld_transaction_id.document_type in ['1','2']:
+                self._check_first_line_detail()
+                purchase_order = self.env['tms.purchase.order.header'].search([
+                    ('no', '=', self.handheld_transaction_id.source_doc_no)
+                ], limit=1)
+                
+                if purchase_order:
+                    # Filter the purchase order lines
+                    purchase_order_line = purchase_order.purchase_order_line_ids.filtered(
+                        lambda line: line.no.id == self.item_no.id
+                    )
 
-                # line2 = purchase_order_line[0]
-                # default_item_uom = self.item_uom.search([
-                #     ('code', '=', line2.unit_of_measure_code.code),
-                #     ('item_no', '=', line2.no.no)
-                # ])
+                    # line2 = purchase_order_line[0]
+                    # default_item_uom = self.item_uom.search([
+                    #     ('code', '=', line2.unit_of_measure_code.code),
+                    #     ('item_no', '=', line2.no.no)
+                    # ])
 
-                if purchase_order_line:
-                    line = purchase_order_line[0]
-                    self.item_description = line.description
-                    self.item_no_no = self.item_no.no
-                    self.line_no = line.id
-                    # self.item_uom = default_item_uom.id
-                else:
-                    self.item_description = False
-                    self.item_no_no = False
-
-
+                    if purchase_order_line:
+                        line = purchase_order_line[0]
+                        self.item_description = line.description
+                        self.item_no_no = self.item_no.no
+                        self.line_no = line.id
+                        # self.item_uom = default_item_uom.id
+                    else:
+                        self.item_description = False
+                        self.item_no_no = False
+            elif self.handheld_transaction_id.document_type in ['3','4']:
+                self._check_first_line_detail()
+                sales_order = self.env['tms.sales.order.header'].search([
+                    ('no', '=', self.handheld_transaction_id.source_doc_no)
+                ], limit=1)
+                
+                if sales_order:
+                    # Filter the purchase order lines
+                    sales_order_line = sales_order.sales_line_ids.filtered(
+                        lambda line: line.no == self.item_no.no
+                    )
+                    if sales_order_line:
+                        line = sales_order_line[0]
+                        self.item_description = line.description
+                        self.item_no_no = self.item_no.no
+                        self.lino_so = line.id
+                    else:
+                        self.item_description = False
+                        self.item_no_no = False
             self.source_doc_no = self.handheld_transaction_id.source_doc_no
 
     @api.onchange('line_no')
@@ -294,12 +332,11 @@ class TMSHandheldTransactionScan(models.Model):
         #         'Total received quantity for item %s exceeds the quantity to receive.' % self.item_no.no
         #     )
 
-        
-        res_source_entries = self.env['tms.reservation.entry'].search([
-            ('source_id', '=', False),('purchase_scan_id','=',self.id),
-        ])
-
-        if res_source_entries.id == False:
+        checksn = False
+        if self.contains_sn or self.contains_lot or self.contains_lot_sn :
+            checksn = True
+     
+        if checksn == False:
             receipt_line = self.env['tms.handheld.transaction.line'].search([
                 ('handheld_transaction_id', '=', self.handheld_transaction_id.id),
                 ('item_no', '=', self.item_no.id),
@@ -334,6 +371,10 @@ class TMSHandheldTransactionScan(models.Model):
                     'line_no': line_no
                 })
         else:
+                    
+            res_source_entries = self.env['tms.reservation.entry'].search([
+                ('source_id', '=', False),('purchase_scan_id','=',self.id),
+            ])
             for entry in res_source_entries:
                 #self.fnCheckSNLOTOnReceipt(entry.serial_no,entry.lot_no)
                 receipt_line = self.env['tms.handheld.transaction.line'].search([
@@ -360,7 +401,7 @@ class TMSHandheldTransactionScan(models.Model):
                         iuom = self.item_uom.id
                    if iuom == False:
                         raise UserError(f'Unit of Measure Code required for this operation cannot found in Item Unit of Measure. Item No. = {item.no}, Code={item.base_unit_of_measure_id}.')
-
+                   
                    self.env['tms.reservation.entry'].create({
                         'item_no': item.no,
                         'source_type': '39',  # Purchase Order
@@ -369,12 +410,11 @@ class TMSHandheldTransactionScan(models.Model):
                         'expiration_date': entry.expiration_date,
                         'source_id': self.handheld_transaction_id.document_no,
                         'lot_no': entry.lot_no,
-                        'line_id' : self.handheld_transaction_id.id,
+                        'line_id' : receipt_line.id,
                         'line_no': entry.line_no
                     })
+                   
                 else:
-                    self.sendhandheldsnLotForCheck(entry.serial_no,entry.lot_no,entry.line_no,self.handheld_transaction_id.id)
-                    
                     item = self.env['tms.item'].search([
                         ('no','=',entry.item_no)
                     ])
@@ -391,7 +431,7 @@ class TMSHandheldTransactionScan(models.Model):
                     if iuom == False:
                         raise UserError(f'Unit of Measure Code required for this operation cannot found in Item Unit of Measure. Item No. = {item.no}, Code={item.base_unit_of_measure_id}.')
                     
-                    receipt_line.create({
+                    rcpt_line = receipt_line.create({
                         'handheld_transaction_id': self.handheld_transaction_id.id,
                         'item_no': item.id,
                         'description': item.description,
@@ -401,6 +441,8 @@ class TMSHandheldTransactionScan(models.Model):
                         'qty_to_receive': entry.quantity,
                         'line_no': entry.line_no
                     })
+
+                    self.sendhandheldsnLotForCheck(entry.serial_no,entry.lot_no,entry.line_no,rcpt_line.id)
                     
                     self.env['tms.reservation.entry'].create({
                         'item_no': item.no,
@@ -410,7 +452,7 @@ class TMSHandheldTransactionScan(models.Model):
                         'expiration_date': entry.expiration_date,
                         'source_id': self.handheld_transaction_id.document_no,
                         'lot_no': entry.lot_no,
-                        'line_id' : self.handheld_transaction_id.id,
+                        'line_id' : rcpt_line.id,
                         'line_no': entry.line_no
                     })
 
@@ -458,6 +500,7 @@ class TMSHandheldTransactionScan(models.Model):
             "Line_No": lineno,
             "Serial_No": sn if sn else "",
             "Lot_No": lot if lot else "",
+            "Document_Type" : self.handheld_transaction_id.document_type
             #"Expired_Date": self.expiration_date.isoformat() if self.expiration_date else datetime.min.isoformat(),
             #"Quantity": str(self.quantity)
         }

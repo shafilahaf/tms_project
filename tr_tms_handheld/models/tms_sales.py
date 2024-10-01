@@ -5,7 +5,7 @@ from odoo.exceptions import UserError, ValidationError
 class TmsSalesHeader(models.Model):
     _name = "tms.sales.order.header"
     _description = "TMS Sales Header"
-    _rec_no = 'no'
+    _rec_name = 'no'
 
     document_type = fields.Selection([
         ('Order', 'Order'),
@@ -62,7 +62,7 @@ class TmsSalesLine(models.Model):
     _name = "tms.sales.order.line"
     _description = "TMS Sales Line"
 
-    header_id = fields.Many2one("tms.sales.order.header", string="Header")
+    header_id = fields.Many2one("tms.sales.order.header", string="Header", ondelete='cascade')
     document_type = fields.Selection([
         ('Quote', 'Quote'),
         ('Order', 'Order'),
@@ -107,3 +107,10 @@ class TmsSalesLine(models.Model):
     return_qty_received = fields.Float(string="Return Qty. Received")
     return_qty_received_base = fields.Float(string="Return Qty. Received (Base)")
     return_reason_code = fields.Char(string="Return Reason Code", size=10)
+
+    def name_get(self):
+        result = []
+        for rec in self:
+            display_name = f"{rec.line_no} - {rec.unit_of_measure_code}"
+            result.append((rec.id, display_name))
+        return result
