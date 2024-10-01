@@ -70,9 +70,12 @@ class TmsTransferHeader(http.Controller):
 
             # Check if the transfer order already exists
             tms_transfer = request.env['tms.transfer.header'].sudo()
+            tms_transfer_line = request.env['tms.transfer.line'].sudo()
             transfer_order = tms_transfer.search([('no', '=', no)])
 
             if transfer_order:
+                tms_transfer_line.search([('header_id', '=', transfer_order.id)]).unlink()
+
                 # Update existing transfer order
                 transfer_order.write({
                     'transfer_from_code': transfer_from_code,
@@ -156,7 +159,8 @@ class TmsTransferHeader(http.Controller):
 
             return {
                 'message': 'Transfer Order created/updated successfully',
-                'response': 200
+                'response': 200,
+                'header_id': transfer_order.id
             }
         except Exception as e:
             _logger.error("Error creating Transfer Order: %s", e)
@@ -188,13 +192,20 @@ class TmsTransferLine(http.Controller):
                     'response': 404
                 }
 
+            tms_transfer_line = request.env['tms.transfer.line'].sudo()
+            tms_item_model = request.env['tms.item'].sudo()
+
             # Create or update transfer lines
             for line_data in transfer_lines:
+                item_no = line_data.get('Item No.')
+                item_record = tms_item_model.search([('no', '=', item_no)], limit=1)
+
                 line_values = {
-                    'header_id': transfer_order.id,
-                    'document_no': transfer_order.no,
+                    'header_id': header_id,
+                    'document_no': line_data.get('Document No.'),
                     'line_no': line_data.get('Line No.'),
-                    'item_no': line_data.get('Item No.'),
+                    'item_no': str(item_record.id) if item_record else False,
+                    'no': str(item_record.id) if item_record else False,
                     'quantity': line_data.get('Quantity'),
                     'uom': line_data.get('Unit of Measure'),
                     'qty_to_ship': line_data.get('Qty. to Ship'),
@@ -222,17 +233,19 @@ class TmsTransferLine(http.Controller):
                     'shipment_date': line_data.get('Shipment Date'),
                     'derived_from_line_no': line_data.get('Derived From Line No.'),
                     'keterangan_dus': line_data.get('Keterangan Dus'),
+                    'item_no_no': item_no,
                 }
 
+              
                 transfer_line = request.env['tms.transfer.line'].sudo().search([
                     ('header_id', '=', transfer_order.id),
                     ('line_no', '=', line_values['line_no'])
                 ])
 
                 if transfer_line:
-                    transfer_line.write(line_values)
+                    tms_transfer_line.write(line_values)
                 else:
-                    request.env['tms.transfer.line'].sudo().create(line_values)
+                    tms_transfer_line.create(line_values)
 
             return {
                 'message': 'Transfer Lines created/updated successfully',

@@ -50,7 +50,7 @@
                                     <field name="no" />
                                     <field name="location_code" />
                                     <field name="quantity" />
-                                    <field name="unit_of_measure" />
+                                    <field name="unit_of_measure_code" />
                                     <field name="qty_to_ship_base" />
                                     <field name="qty_shipped_base" />
                                 </tree>

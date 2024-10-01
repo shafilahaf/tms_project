@@ -36,6 +36,7 @@
                             <field name="document_type" readonly="1"/>
                             <field name="document_no" readonly="1"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
                             <field name="source_doc_no" readonly="1"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
+                            <field name="supplier_no_packing_list" attrs ="{'invisible':[('document_type','not in', ['5','6'])]}"/>
                             <field name="state" readonly="1" string="Receipt Status"/>
                         </group>
                         <group>
@@ -121,8 +122,10 @@
                     </div>
                     <group col="2">
                         <group>
+                            <field name="document_type" readonly="1"/>
                             <field name="document_no" />
                             <field name="source_doc_no" />
+                            <field name="supplier_no_packing_list" attrs ="{'invisible':[('document_type','not in', ['5','6'])]}"/>
                             <field name="state" readonly="1" string="Receipt Status"/>
                         </group>
                         <group>

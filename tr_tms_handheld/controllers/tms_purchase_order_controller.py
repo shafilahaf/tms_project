@@ -64,7 +64,7 @@ class TmsPurchaseHeader(http.Controller):
             if purchase_order:
                 
                 tms_purchase_line.search([('header_id', '=', purchase_order.id)]).unlink()
-                
+
                 purchase_order.write({
                     'document_type': document_type,
                     'buy_from_vendor_no': buy_from_vendor_no,
@@ -142,6 +142,20 @@ class TmsPurchaseLine(http.Controller):
             header_id = data.get('header_id')
             purchase_order_lines = data.get('Purchase_Order_Lines', [])
 
+            if not header_id:
+                return {
+                    'error': 'Purchase Order ID is required',
+                    'response': 400
+                }
+
+            purch_order = request.env['tms.purchase.order.header'].sudo().browse(header_id)
+
+            if not purch_order:
+                return {
+                    'error': 'Purchase Order not found',
+                    'response': 404
+                }
+
             tms_purchase_line = request.env['tms.purchase.order.line'].sudo()
             tms_item_model = request.env['tms.item'].sudo()
             tms_uom_model = request.env['tms.unit.of.measures'].sudo()
@@ -192,16 +206,12 @@ class TmsPurchaseLine(http.Controller):
                     'item_no_no': item_no,
                 }
 
-                existing_line = tms_purchase_line.search([('header_id', '=', header_id), ('line_no', '=', line_values['line_no'])])
-                if existing_line:
-                    existing_line.write(line_values)
-                else:
-                    tms_purchase_line.create(line_values)
+                tms_purchase_line.create(line_values)
 
             return {
                 'message': 'Purchase Order Lines created/updated successfully',
                 'response': 200
-            }
+             }
         except Exception as e:
             _logger.error("Error creating/updating Purchase Order Lines: %s", e)
             return {

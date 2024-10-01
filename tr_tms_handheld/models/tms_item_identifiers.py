@@ -28,40 +28,10 @@ class TmsItemIdentifiers(models.Model):
     item_identifiers_line_ids = fields.One2many('tms.item.identifiers.line', 'header_id', string='Item Identifier Line')
     need_sent_to_wms = fields.Boolean(string="Need Sent to WMS")
     from_nav = fields.Boolean(string="From NAV")
+
+    #SH
     sh_product_barcode_mobile = fields.Char(string="Mobile Barcode", store=True)
 
-    @api.onchange('sh_product_barcode_mobile')
-    def _onchange_sh_product_barcode_mobile(self):
-        if self.sh_product_barcode_mobile:
-            # Define sound codes
-            CODE_SOUND_SUCCESS = ""
-            CODE_SOUND_FAIL = ""
-
-            # Check company settings for sound notifications
-            if self.env.company.sudo().sh_product_bm_is_sound_on_success:
-                CODE_SOUND_SUCCESS = "SH_BARCODE_MOBILE_SUCCESS_"
-
-            if self.env.company.sudo().sh_product_bm_is_sound_on_fail:
-                CODE_SOUND_FAIL = "SH_BARCODE_MOBILE_FAIL_"
-
-            # Send notification sound for success
-            if self.env.company.sudo().sh_product_bm_is_notify_on_success:
-                message = _(CODE_SOUND_SUCCESS + 'Scanned Barcode: %s') % self.sh_product_barcode_mobile
-                self.env['bus.bus']._sendone(
-                    self.env.user.partner_id,
-                    'sh_product_barcode_mobile_notification_info', {
-                        'title': _("Succeed"),
-                        'message': message,
-                    })
-        else:
-            if self.env.company.sudo().sh_product_bm_is_notify_on_fail:
-                message = _(CODE_SOUND_FAIL + 'No barcode provided!')
-                self.env['bus.bus']._sendone(
-                    self.env.user.partner_id,
-                    'sh_product_barcode_mobile_notification_danger', {
-                        'title': _("Failed"),
-                        'message': message,
-                    })
 
     # barcode
     @api.onchange('sh_product_barcode_mobile', 'barcode_type')
@@ -74,6 +44,30 @@ class TmsItemIdentifiers(models.Model):
 
             except Exception as e:
                 raise ValidationError(f"Error parsing GS1-128 barcode: {str(e)}")
+            
+        if self.sh_product_barcode_mobile:
+            company = self.env.company
+            CODE_SOUND_SUCCESS = ""
+            CODE_SOUND_FAIL = ""
+
+            # Check if sound on success is enabled
+            if company.sh_product_bm_is_sound_on_success:
+                CODE_SOUND_SUCCESS = "SH_BARCODE_MOBILE_SUCCESS_"
+
+            # Check if sound on failure is enabled
+            if company.sh_product_bm_is_sound_on_fail:
+                CODE_SOUND_FAIL = "SH_BARCODE_MOBILE_FAIL_"
+
+            # Send notification for success sound
+            if company.sh_product_bm_is_notify_on_success:
+                message = _(CODE_SOUND_SUCCESS + 'Scanned Barcode: %s') % self.sh_product_barcode_mobile
+                self.env['bus.bus']._sendone(
+                    self.env.user.partner_id,
+                    'sh_product_barcode_mobile_notification_info', {
+                        'title': _("Succeed"),
+                        'message': message,
+                    })
+
 
     def parse_gs1_128_barcode(self, barcode):
         clean_barcode = barcode.replace("\x1d", "")

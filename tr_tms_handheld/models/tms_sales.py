@@ -71,7 +71,7 @@ class TmsSalesLine(models.Model):
         ('Blanket Order', 'Blanket Order'),
         ('Return Order', 'Return Order')
     ], string="Document Type")
-    sell_to_customer_no = fields.Char(string="Sell-to Customer No.",  size=20)
+    sell_to_customer_no = fields.Char(string="Sell-to Customer No.", size=20)
     document_no = fields.Char(string="Document No",  store=True, size=20)
     line_no = fields.Integer(string="Line No")
     type = fields.Selection([
@@ -81,7 +81,8 @@ class TmsSalesLine(models.Model):
         ('Fixed Asset', 'Fixed Asset'),
         ('Charge (Item)', 'Charge (Item)')
     ], string="Type")
-    no = fields.Char(string="No.",  size=20)
+    #no = fields.Char(string="No.",  size=20)
+    no = fields.Many2one('tms.item', string='No')
     location_code = fields.Char(string="Location Code", size=10)
     description = fields.Text(string="Description", size=50)
     description_2 = fields.Text(string="Description 2", size=50)
@@ -107,6 +108,7 @@ class TmsSalesLine(models.Model):
     return_qty_received = fields.Float(string="Return Qty. Received")
     return_qty_received_base = fields.Float(string="Return Qty. Received (Base)")
     return_reason_code = fields.Char(string="Return Reason Code", size=10)
+    item_no_no = fields.Char(string='Item Number', store=True)
 
     def name_get(self):
         result = []

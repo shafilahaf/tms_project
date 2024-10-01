@@ -59,9 +59,13 @@ class TmssalesHeader(http.Controller):
             complete_shipment = data.get('Complete Shipment')
 
             tms_sales = request.env['tms.sales.order.header'].sudo()
+            tms_sales_line = request.env['tms.sales.order.line'].sudo()
             sales_order = tms_sales.search([('document_type', '=', document_type), ('no', '=', no)])
 
             if sales_order:
+
+                tms_sales_line.search([('header_id', '=', sales_order.id)]).unlink()
+
                 sales_order.write({
                     'document_type': document_type,
                     'sell_to_customer_no': sell_to_customer_no,
@@ -138,14 +142,11 @@ class TmsSalesLine(http.Controller):
     @validate_token
     @http.route('/api/tms_sales_order_line', auth='public', methods=['POST'], csrf=False, type='json')
     def create_sales_order_line(self, **kw):
-        # try:
+        try:
             data = request.jsonrequest
             header_id = data.get('header_id')
-            header_id_int = int(header_id)
             sales_order_lines = data.get('Sales_Order_Lines', [])
             
-            print()
-
             if not header_id:
                 return {
                     'error': 'Sales Order ID is required',
@@ -160,8 +161,14 @@ class TmsSalesLine(http.Controller):
                     'response': 404
                 }
 
+            tms_sales_line = request.env['tms.sales.order.line'].sudo()
+            tms_item_model = request.env['tms.item'].sudo()
+
             # Create or update sales order lines
             for line_data in sales_order_lines:
+                item_no = line_data.get('No.')
+                item_record = tms_item_model.search([('no', '=', item_no)], limit=1)
+            
                 line_values = {
                     'header_id': header_id,
                     'line_no': line_data.get('Line No.'),
@@ -169,7 +176,7 @@ class TmsSalesLine(http.Controller):
                     'sell_to_customer_no': line_data.get('Sell-to Customer No.'),
                     'document_no': line_data.get('Document No.'),
                     'type': line_data.get('Type'),
-                    'no': line_data.get('No.'),
+                    'no': str(item_record.id) if item_record else False,
                     'location_code': line_data.get('Location Code'),
                     'description': line_data.get('Description'),
                     'description_2': line_data.get('Description 2'),
@@ -195,20 +202,19 @@ class TmsSalesLine(http.Controller):
                     'return_qty_received': line_data.get('Return Qty. Received'),
                     'return_qty_received_base': line_data.get('Return Qty. Received (Base)'),
                     'return_reason_code': line_data.get('Return Reason Code'),
+                    'item_no_no': item_no,
                 }
-                existing_line = request.env['tms.sales.order.line'].sudo().search([('header_id', '=', header_id), ('line_no', '=', line_values['line_no'])])
-                if existing_line:
-                    existing_line.write(line_values)
-                else:
-                    request.env['tms.sales.order.line'].sudo().create(line_values)
+
+              
+                tms_sales_line.create(line_values)
 
             return {
                 'message': 'Sales Order Lines created/updated successfully',
                 'response': 200
             }
-        # except Exception as e:
-        #     _logger.error("Error creating Sales Order Lines: %s", e)
-        #     return {
-        #         'error': str(e),
-        #         'response': 500
-        #     }
+        except Exception as e:
+            _logger.error("Error creating Sales Order Lines: %s", e)
+            return {
+                'error': str(e),
+                'response': 500
+            }
