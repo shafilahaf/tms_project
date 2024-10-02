@@ -29,14 +29,15 @@
                     <div class="oe_button_group" style="margin-bottom: 15px;">
                         <button name="scan_itemm" string="Scan Item" type="object" class="oe_highlight" attrs ="{'invisible':[('state','=', 'submitted')]}"/>
                         <button name="post" string="Post" type="object" class="oe_highlight" style="margin-left: 10px;" attrs ="{'invisible':[('state','=', 'submitted')]}"/>
-                        <button name="back_to_transaction" string="Back to Transaction" style="margin-left: 10px;" type="object" class="oe_highlight"/>
+                        <!-- <button name="back_to_transaction" string="Back to Transaction" style="margin-left: 10px;" type="object" class="oe_highlight"/> -->
                     </div>
                     <group col="2">
                         <group>
                             <field name="document_type" readonly="1"/>
-                            <field name="document_no" readonly="1"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
+                            <field name="document_no" readonly="1" force_save="1"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
                             <field name="source_doc_no" readonly="1"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
                             <field name="supplier_no_packing_list" attrs ="{'invisible':[('document_type','not in', ['5','6'])]}"/>
+                            <field name="location_id" attrs ="{'invisible':[('document_type','not in', ['8'])]}"/>
                             <field name="state" readonly="1" string="Receipt Status"/>
                         </group>
                         <group>
@@ -55,6 +56,7 @@
                                     <!-- <field name="uom" force_save="1"/> -->
                                     <field name="item_uom" />
                                     <field name="qty_to_receive" force_save="1"/>
+                                    <field name="entry_type" />
                                     <field name="qty_received" force_save="1" invisible="1"/>
                                     <field name="available_item_ids" invisible="1"/>
                                     <field name="item_tracking_code" invisible="1"/>
@@ -71,6 +73,7 @@
                                         <!-- <field name="uom" /> -->
                                         <field name="item_uom" />
                                         <field name="qty_to_receive" />
+                                        <field name="entry_type" />
                                         <field name="qty_received" invisible="1"/>
                                         <field name="available_item_ids" invisible="1"/>
                                         <field name="item_tracking_code" invisible="1"/>
@@ -123,9 +126,10 @@
                     <group col="2">
                         <group>
                             <field name="document_type" readonly="1"/>
-                            <field name="document_no" />
+                            <field name="document_no" force_save="1"/>
                             <field name="source_doc_no" />
                             <field name="supplier_no_packing_list" attrs ="{'invisible':[('document_type','not in', ['5','6'])]}"/>
+                            <field name="location_id" attrs ="{'invisible':[('document_type','not in', ['8'])]}"/>
                             <field name="state" readonly="1" string="Receipt Status"/>
                         </group>
                         <group>
@@ -144,6 +148,7 @@
                                     <!-- <field name="uom" force_save="1"/> -->
                                     <field name="qty_to_receive" force_save="1"/>
                                     <field name="qty_received" force_save="1"/>
+                                    <field name="entry_type" />
                                     <field name="available_item_ids" invisible="1"/>
                                     <field name="item_tracking_code" invisible="1"/>
                                     <!-- <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" /> -->
@@ -158,6 +163,7 @@
                                         <!-- <field name="uom" /> -->
                                         <field name="qty_to_receive" />
                                         <field name="qty_received" />
+                                        <field name="entry_type" />
                                         <field name="available_item_ids" invisible="1"/>
                                         <field name="item_tracking_code" invisible="1"/>
                                         <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" attrs="{'invisible': [('item_tracking_code', '=', '')]}" />
@@ -179,6 +185,13 @@
         <field name="view_id" ref="tms_reservation_entry_view_tree"/>
         <field name="context">{'create': True, 'edit': False, 'delete': True}</field>
         <field name="domain">[]</field>
+    </record>
+
+    <record id="seq_document_no_transaction" model="ir.sequence">
+        <field name="name">Item Journal Document No</field>
+        <field name="code">tms.handheld.transaction</field>
+        <field name="prefix">ITEMJOURNAL-</field>
+        <field name="padding">5</field>
     </record>
 
 

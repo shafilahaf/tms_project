@@ -12,3 +12,5 @@ from . import tms_reservation_entry
 from . import tms_handheld_transaction
 from . import tms_handheld_transaction_scan
 from . import tms_barcode_type
+from . import tms_item_journal
+from . import tms_location

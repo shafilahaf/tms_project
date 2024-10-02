@@ -35,7 +35,7 @@ class TmssalesHeader(http.Controller):
             no = data.get('No.')
             order_date = data.get('Order Date')
             posting_date = data.get('Posting Date')
-            shipment_date = data.get('Shipment Date')
+            shipment_date = data.get('Shipment Date') if data.get('Shipment Date') else False
             location_code = data.get('Location Code')
             sell_to_customer_name = data.get('Sell-to Customer Name')
             sell_to_customer_name_2 = data.get('Sell-to Customer Name 2')
@@ -127,7 +127,7 @@ class TmssalesHeader(http.Controller):
                 })
 
             return {
-                'message': 'sales Order created/updated successfully',
+                'message': 'Sales Order created/updated successfully',
                 'response': 200,
                 'header_id': sales_order.id
             }

@@ -40,6 +40,7 @@
                             </div>
                         </section>
                         <field name="item_no" options="{'no_create': True, 'no_create_edit':True}"/>
+                        <field name="entry_type" attrs ="{'invisible':[('handheld_document_type','not in', ['8'])]}"/>
                         <field name="line_po" force_save="1" attrs ="{'invisible':[('handheld_document_type','not in', ['1','2'])]}"/>
                         <field name="line_so" force_save="1" attrs ="{'invisible':[('handheld_document_type','not in', ['3','4'])]}"/>
                         <field name="line_to" force_save="1" attrs ="{'invisible':[('handheld_document_type','not in', ['5','6'])]}"/>

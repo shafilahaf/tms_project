@@ -26,13 +26,19 @@
         "views/tms_reservation_entry.xml",
         "views/tms_handheld_transaction.xml",
         "views/tms_handheld_transaction_scan.xml",
+        "views/tms_item_journal.xml",
+        "views/tms_location.xml",
     ],
     "assets": {
         "web.assets_backend": [
             'tr_tms_handheld/static/src/css/tree_view.css',
             'tr_tms_handheld/static/src/scss/custom.scss',
             'tr_tms_handheld/static/src/js/bus_notification.js',
-            'tr_tms_handheld/static/src/js/ZXing.js'
+            'tr_tms_handheld/static/src/js/ZXing.js',
+            # 'tr_tms_handheld/static/src/js/tree_button_transaction.js'
+        ],
+        'web.assets_qweb': [
+            'tr_tms_handheld/static/src/xml/*.xml'
         ],
     },
 }

@@ -13,8 +13,8 @@ class TMSHandheldReceipt(models.Model):
     _description = 'TMS Handheld Transaction'
     _rec_name = 'document_no'
     
-    document_type = fields.Selection([('1', 'Purchase Receipt Order'), ('2', 'Purchase Return Shipment'),('3', 'Sales Shipment Order'), ('4', 'Sales Return Receipt'),('5', 'Transfer Shipment'),('6', 'Transfer Receipt')], string='Document Type')
-    document_no = fields.Char('Document No.', readonly=True)
+    document_type = fields.Selection([('1', 'Purchase Receipt Order'), ('2', 'Purchase Return Shipment'),('3', 'Sales Shipment Order'), ('4', 'Sales Return Receipt'),('5', 'Transfer Shipment'),('6', 'Transfer Receipt'), ('7', 'Phys. Inv. Journal'), ('8', 'Item Journal')], string='Document Type')
+    document_no = fields.Char('Document No.', readonly=True, store=True)
     source_doc_no = fields.Char('Source Doc. No.', readonly=True)
     posting_date = fields.Date('Posting Date')
     vendor_shipment_no = fields.Char('Vendor Shipment No', size=35)
@@ -23,6 +23,7 @@ class TMSHandheldReceipt(models.Model):
     state = fields.Selection([('draft', 'Draft'), ('submitted', 'Posted')], string='Status', default='draft', required=True)
     noseries_count = fields.Integer(string = 'No Series Count')
     supplier_no_packing_list = fields.Char(string="Supplier & No Packing List")
+    location_id = fields.Many2one('tms.locations', string='Location')
 
 
     def back_to_transaction(self):
@@ -74,7 +75,7 @@ class TMSHandheldReceipt(models.Model):
     
     @api.model
     def create(self, vals):
-        if 'source_doc_no' in vals and vals['source_doc_no']:
+        if 'source_doc_no' in vals and vals['source_doc_no'] and vals['document_type'] != '8':
             doctypesource = self.fnCheckDocTypeSource(vals)
 
             if self.document_type in ['1','2']:
@@ -91,6 +92,8 @@ class TMSHandheldReceipt(models.Model):
                     raise ValidationError('Transfer Order not found.')
                 
             self.fnCreateDocNo(vals)
+        elif 'document_type' not in vals:
+            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.transaction')
         else:
             raise ValidationError('Source Doc. No. is required.')
 
@@ -177,8 +180,11 @@ class TMSHandheldReceipt(models.Model):
 
         vals['document_no'] = f"{vals['source_doc_no']}-{title}-{vals['noseries_count']:03d}"
 
-        return vals
+        if vals["document_type"] in ["8"] :
+            title = "Item Journal"
+            vals['document_no'] = f"{title}-{vals['noseries_count']:03d}"
 
+        return vals
 
     def scan_itemm(self):
         self.ensure_one()
@@ -198,7 +204,7 @@ class TMSHandheldReceipt(models.Model):
             }
         }
         
-    def post(self):
+    def post_transaction(self):
         """
         This method will change the status of the receipt to 'Submitted' and change quantity in line to purchase order nav
         """
@@ -258,23 +264,109 @@ class TMSHandheldReceipt(models.Model):
 
         self.returnPage(self.document_type)
 
-        # purchase_order = self.env['tms.purchase.order.header'].search([('no', '=', self.source_doc_no)], limit=1)
-        # if not purchase_order:
-        #     raise ValidationError('Related Purchase Order not found.')
+    def post_item_journal_header(self):
+        if self.posting_date == False:
+            raise UserError('Please enter the Posting Date before submit')
         
-    
-        # return {
-        #     'name': 'Purchase Order',
-        #     'view_mode': 'form',
-        #     'res_model': 'tms.purchase.order.header',
-        #     'type': 'ir.actions.act_window',
-        #     'target': 'main',
-        #     'res_id': purchase_order.id,
-        #     'context': {
-        #         'create': False, 'edit': False, 'delete': False
-        #     }
-        # }
-    
+        #get data
+        eTag = ""
+        dicFilter = {1 : "Document_Type", 2 : self.fnCheckDocType() , 3 : "No", 4 : self.document_no}
+        url_header,headers,auth = self.getUrlNav("ItemJournalHH",eTag,dicFilter)
+
+        response = requests.get(url_header, headers=headers, auth=auth)
+        if response.status_code == 400 :
+            response_json = response.json()
+            resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
+            raise ValidationError( f'Nav Error {resp}')
+        elif response.status_code == 200 :
+            response_json = response.json()
+            status = response.headers.get('Status')
+            if status == "Posted":
+                raise UserError("Item Journal has been posted in Nav")
+            else :
+                etag = response.headers.get('ETag')
+                headers = {'Content-Type': 'application/json', 'If-Match': etag}
+                response = requests.delete(url_header, headers=headers, auth=auth)
+
+        #create new
+        dicFilter = False
+        url_header,headers,auth = self.getUrlNav("ItemJournalHH",eTag,dicFilter)
+        data_header = {
+            "No": self.document_no,
+            "Posting_Date": self.posting_date.isoformat(),
+            "Location_Code": self.location_id.code,
+            "Document_Type" : self.fnCheckDocType()
+        }
+
+        response = requests.post(url_header, headers=headers, auth=auth, json=data_header)
+
+        if response.status_code == 400 :
+            response_json = response.json()
+            resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
+            raise ValidationError( f'Nav Error {resp}')
+        
+
+    def getUrlNav(self,apiname,etag,paramArray) : 
+        if paramArray :
+            varfilter = ""
+            i = 0
+            for key in paramArray :
+                i = i + 1
+                if i % 2 != 0: #ganjil
+                    if varfilter != "" :
+                        varfilter = varfilter + ',' + paramArray[i] + '='
+                    else :
+                        varfilter = varfilter + paramArray[i] + '='
+                else :
+                    varfilter = varfilter + f'\'{paramArray[i]}\'' 
+            url_header = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/{apiname}({varfilter})?$format=json'  
+        else :
+            url_header = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/{apiname}()?$format=json'  
+
+        headers = {'Content-Type': 'application/json'}
+
+        if etag :
+            headers = {'Content-Type': 'application/json', 'If-Match': etag}
+
+        username = self.company.username_api
+        password = self.company.password_api
+        
+        auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
+
+        return url_header,headers,auth
+
+    def post_item_journal_line(self):
+        eTag = ""
+        dicFilter = False
+        url_line,headers,auth = self.getUrlNav("ItemJournalHHLine",eTag,dicFilter)
+
+
+        for line in self.transaction_line_ids:
+            data_line = {
+                "Document_No": self.document_no,
+                "Line_No": str(line.line_no),
+                "Posting_Date": self.posting_date.isoformat(),
+                "Entry_Type": line.entry_type,
+                "Item_No": line.item_no.no,
+                "Description": line.item_no.description,
+                "Unit_of_Measure_Code": line.item_uom.code,
+                "Quantity": str(line.qty_to_receive),
+            }
+            
+            response = requests.post(url_line, headers=headers, auth=auth, json=data_line)
+            
+            if response.status_code == 400 :
+                response_json = response.json()
+                resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text )
+                raise ValidationError( f'Nav Error {resp}')
+        
+    def post(self):
+        if self.document_type == "8":
+            self.post_item_journal_header()
+            self.post_item_journal_line()
+        else:
+            self.post_transaction()
+
     def returnPage(self,doctype):
         model = ''
         title = ''
@@ -365,21 +457,19 @@ class TMSHandheldReceipt(models.Model):
 
         #update Line
         doctype = self.fnCheckDocType()
-      
         data2 = {
-             'Document_Type': doctype,
-             'Document_No': self.source_doc_no,
-             "Processed_Header_ID": str(self.id),
-             "Posting_Date": self.posting_date.isoformat(),
-             'Post_Action': parAction,
-             
+            'Document_Type': doctype,
+            'Document_No': self.source_doc_no,
+            "Processed_Header_ID": str(self.id),
+            "Posting_Date": self.posting_date.isoformat(),
+            'Post_Action': parAction,
         }
 
         response = requests.post(url2, headers=headers, auth=auth, json=data2)
 
         if response.status_code == 400 :
             response_json = response.json()
-            resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text )
+            resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
             raise ValidationError( f'Nav Error {resp}')
         elif response.status_code == 201 :
            self.state = 'submitted'
@@ -395,11 +485,13 @@ class TMSHandheldReceipt(models.Model):
         elif self.document_type  =="3":
             doctype = "Sales Order"
         elif self.document_type  == "4":
-            doctype = "Sales  Return"
+            doctype = "Sales Return"
         elif self.document_type  == "5":
             doctype = "Transfer Shipment"
         elif self.document_type  == "6":
             doctype = "Transfer Receipt"
+        elif self.document_type  == "8":
+            doctype = "Item Journal"
 
         return doctype
     
@@ -433,7 +525,6 @@ class TMSHandheldReceipt(models.Model):
         }
         return notification
 
-   
 
 class TMSHandheldTransactionLine(models.Model):
     _name = 'tms.handheld.transaction.line'
@@ -452,6 +543,10 @@ class TMSHandheldTransactionLine(models.Model):
     qty_received = fields.Float('Qty Processed')
     item_tracking_code = fields.Char(string='Item Tracking Code', related='item_no.item_tracking_code',store=True)
     available_item_ids = fields.Many2many('tms.item', compute='_compute_available_item_ids', store=False)
+    entry_type = fields.Selection([
+        ('Positive Adjusment', 'Positive Adjusment'),
+        ('Negative Adjusment', 'Negative Adjusment'),
+    ], string='Entry Type')
     
     @api.depends('handheld_transaction_id')
     def _compute_available_item_ids(self):
@@ -530,15 +625,3 @@ class TMSHandheldTransactionLine(models.Model):
         
         # Call the super method to delete the purchase receipt line
         return super(TMSHandheldTransactionLine, self).unlink()
-
-#dummy
-class TmsReceiptHeader(models.Model):
-    _name = 'tms.receipt.header'
-    _description = 'TMS Receipt Header'
-    _rec_name = 'no'
-
-    document_type = fields.Char(string='Document Type', required=True)
-    no = fields.Char(string='Receipt No.', required=True, default='New', readonly=True)
-
-
-

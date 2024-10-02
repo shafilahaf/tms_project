@@ -8,5 +8,5 @@ from . import tms_item_identifiers_controller
 from . import tms_item_variant_controller
 from . import tms_sales_controller
 from . import tms_transfer_controller
-# from . import tms_reservation_entry_controller
-# from . import tms_item_journal_line_controller
+from . import tms_item_journal_controller
+from . import tms_location
