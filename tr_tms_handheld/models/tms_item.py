@@ -4,7 +4,7 @@ from odoo.exceptions import UserError, ValidationError
 class TmsItem(models.Model):
     _name = 'tms.item'
     _description = 'TMS Item'
-    _rec_name = 'combination'
+    _rec_name = 'no'
 
     no = fields.Char(string='No.', required=True)
     description = fields.Text(string='Description', required=True)

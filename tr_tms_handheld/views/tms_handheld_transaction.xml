@@ -7,10 +7,11 @@
         <field name="arch" type="xml">
             <tree string="">
                 <field name="document_no" />
-                <field name="source_doc_no" />
+                <!-- <field name="source_doc_no" attrs ="{'invisible':[('document_type','in', ['8'])]}"/> -->
                 <field name="posting_date" />
-                <field name="vendor_shipment_no" />
-                <field name="state" />
+                <!-- <field name="vendor_shipment_no" attrs ="{'invisible':[('document_type','in', ['8'])]}"/> -->
+                 <field name="document_type" readonly="1"/>
+                <field name="state" string="Status"/>
             </tree>
         </field>
     </record>
@@ -35,28 +36,28 @@
                         <group>
                             <field name="document_type" readonly="1"/>
                             <field name="document_no" readonly="1" force_save="1"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
-                            <field name="source_doc_no" readonly="1"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
+                            <field name="source_doc_no" readonly="1" attrs ="{'invisible':[('document_type','in', ['8'])]}"/> <!--attrs ="{'readonly':[('state','=', 'submitted')]}"-->
                             <field name="supplier_no_packing_list" attrs ="{'invisible':[('document_type','not in', ['5','6'])]}"/>
-                            <field name="location_id" attrs ="{'invisible':[('document_type','not in', ['8'])]}"/>
-                            <field name="state" readonly="1" string="Receipt Status"/>
+                            <field name="location_id" attrs ="{'invisible':[('document_type','not in', ['8'])], 'readonly':[('state','=', 'submitted')]}" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
+                            <field name="state" readonly="1" string="Status"/>
                         </group>
                         <group>
                             <field name="posting_date" attrs ="{'readonly':[('state','=', 'submitted')]}"/>
-                            <field name="vendor_shipment_no" attrs ="{'readonly':[('state','=', 'submitted')]}"/>
+                            <field name="vendor_shipment_no" attrs ="{'readonly':[('state','=', 'submitted')],'invisible': [('document_type', 'not in', ['1'])]}"/>
                         </group>
                     </group>
                     <notebook>
-                        <page name="receipt_line" string="Receipt Line">
+                        <page name="receipt_line" string="Lines">
                             <field name="transaction_line_ids" attrs ="{'readonly':[('state','=', 'submitted')]}">
-                                <tree editable="bottom">
+                                <tree editable="bottom" create="false">
                                     <field name="line_no" force_save="1" readonly="1"/>
                                     <field name="item_no" readonly="1"/>
                                     <field name="description" force_save="1" readonly="1"/>
                                     <field name="quantity" force_save="1" invisible="1"/>
                                     <!-- <field name="uom" force_save="1"/> -->
-                                    <field name="item_uom" />
+                                    <field name="item_uom" readonly="1"/>
                                     <field name="qty_to_receive" force_save="1"/>
-                                    <field name="entry_type" />
+                                    <field name="entry_type" readonly="1"/>
                                     <field name="qty_received" force_save="1" invisible="1"/>
                                     <field name="available_item_ids" invisible="1"/>
                                     <field name="item_tracking_code" invisible="1"/>
@@ -100,7 +101,7 @@
                 <field name="source_doc_no" />
                 <field name="posting_date" />
                 <field name="vendor_shipment_no" />
-                <field name="state" />
+                <field name="state" string="Status"/>
             </tree>
         </field>
     </record>
@@ -121,37 +122,36 @@
                     <div class="oe_button_group" style="margin-bottom: 15px;">
                         <button name="scan_itemm" string="Scan Item" type="object" class="oe_highlight" />
                         <button name="post" string="Post" type="object" class="oe_highlight" style="margin-left: 10px;" />
-                        <button name="back_to_transaction" string="Back to Transaction" style="margin-left: 10px;" type="object" class="oe_highlight"/>
+                        <button name="back_to_transaction" string="Back" style="margin-left: 10px;" type="object" class="oe_highlight"/>
                     </div>
                     <group col="2">
                         <group>
                             <field name="document_type" readonly="1"/>
                             <field name="document_no" force_save="1"/>
-                            <field name="source_doc_no" />
+                            <field name="source_doc_no" attrs ="{'invisible':[('document_type','in', ['8'])]}"/>
                             <field name="supplier_no_packing_list" attrs ="{'invisible':[('document_type','not in', ['5','6'])]}"/>
-                            <field name="location_id" attrs ="{'invisible':[('document_type','not in', ['8'])]}"/>
-                            <field name="state" readonly="1" string="Receipt Status"/>
+                            <field name="location_id" attrs ="{'invisible':[('document_type','not in', ['8'])], 'required':[('document_type','in', ['8'])]}" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
+                            <field name="state" readonly="1" string="Status"/>
                         </group>
                         <group>
-                            <field name="posting_date" />
-                            <field name="vendor_shipment_no" />
+                            <field name="posting_date" attrs ="{'readonly':[('state','=', 'submitted')]}"/>
+                            <field name="vendor_shipment_no" attrs ="{'readonly':[('state','=', 'submitted')],'invisible': [('document_type', 'not in', ['1'])]}"/>
                         </group>
                     </group>
                     <notebook>
-                        <page name="receipt_line" string="Receipt Line">
+                        <page name="receipt_line" string="Lines">
                             <field name="transaction_line_ids">
-                                <tree editable="bottom">
+                                <tree editable="bottom" create="false">
                                     <field name="line_no" force_save="1"/>
-                                    <field name="item_no" />
-                                    <field name="description" force_save="1"/>
-                                    <field name="quantity" force_save="1" invisible="1"/>
+                                    <field name="item_no" readonly="1"/>
+                                    <field name="description" force_save="1" readonly="1"/>
+                                    <field name="quantity" force_save="1" invisible="1" readonly="1"/>
                                     <!-- <field name="uom" force_save="1"/> -->
                                     <field name="qty_to_receive" force_save="1"/>
-                                    <field name="qty_received" force_save="1"/>
-                                    <field name="entry_type" />
-                                    <field name="available_item_ids" invisible="1"/>
-                                    <field name="item_tracking_code" invisible="1"/>
-                                    <!-- <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" /> -->
+                                    <field name="qty_received" force_save="1" readonly="1"/>
+                                    <field name="entry_type" readonly="1"/>
+                                    <field name="available_item_ids" invisible="1" readonly="1"/>
+                                    <field name="item_tracking_code" invisible="1" readonly="1"/>
                                     <button name="action_view_reservation_entries" string="Detail" type="object" class="oe_highlight" attrs="{'invisible': [('item_tracking_code', '=', '')]}" />
                                 </tree>
                                 <form>
@@ -160,7 +160,6 @@
                                         <field name="item_no" />
                                         <field name="description" />
                                         <field name="quantity" invisible="1"/>
-                                        <!-- <field name="uom" /> -->
                                         <field name="qty_to_receive" />
                                         <field name="qty_received" />
                                         <field name="entry_type" />
@@ -178,21 +177,54 @@
     </record>
     <!--  -->
 
-    <record id="action_tms_reservation_entry2" model="ir.actions.act_window">
-        <field name="name">Reservation Entries</field>
-        <field name="res_model">tms.reservation.entry</field>
-        <field name="view_mode">tree,form</field>
-        <field name="view_id" ref="tms_reservation_entry_view_tree"/>
-        <field name="context">{'create': True, 'edit': False, 'delete': True}</field>
-        <field name="domain">[]</field>
+  
+
+    <record id="seq_document_no_purchase_receipt" model="ir.sequence">
+        <field name="name">Purchase Receipt</field>
+        <field name="code">tms.handheld.purchase_receipt</field>
+        <field name="prefix">PBHH/%(y)s-%(month)s/</field>
+        <field name="padding">4</field>
     </record>
 
-    <record id="seq_document_no_transaction" model="ir.sequence">
+    <record id="seq_document_no_purchase_shipment" model="ir.sequence">
+        <field name="name">Purchase Shipment</field>
+        <field name="code">tms.handheld.purchase_shipment</field>
+        <field name="prefix">RBHH/%(y)s-%(month)s/</field>
+        <field name="padding">4</field>
+    </record>
+
+    <record id="seq_document_no_sales_shipment" model="ir.sequence">
+        <field name="name">Sales Shipment</field>
+        <field name="code">tms.handheld.sales_shipment</field>
+        <field name="prefix">SJHH/%(y)s-%(month)s/</field>
+        <field name="padding">4</field>
+    </record>
+
+    <record id="seq_document_no_sales_receipt" model="ir.sequence">
+        <field name="name">Sales Receipt</field>
+        <field name="code">tms.handheld.sales_receipt</field>
+        <field name="prefix">RIHH/%(y)s-%(month)s/</field>
+        <field name="padding">4</field>
+    </record>
+
+    <record id="seq_document_no_transfer_shipment" model="ir.sequence">
+        <field name="name">Transfer Shipment</field>
+        <field name="code">tms.handheld.transfer_shipment</field>
+        <field name="prefix">SJSH/%(y)s-%(month)s/</field>
+        <field name="padding">4</field>
+    </record>
+
+    <record id="seq_document_no_transfer_receipt" model="ir.sequence">
+        <field name="name">Transfer Receipt</field>
+        <field name="code">tms.handheld.transfer_receipt</field>
+        <field name="prefix">TIHH/%(y)s-%(month)s/</field>
+        <field name="padding">4</field>
+    </record>
+
+    <record id="seq_document_no_itemjournal" model="ir.sequence">
         <field name="name">Item Journal Document No</field>
-        <field name="code">tms.handheld.transaction</field>
+        <field name="code">tms.handheld.itemjournal</field>
         <field name="prefix">ITEMJOURNAL-</field>
         <field name="padding">5</field>
-    </record>
-
-
+</record>
 </odoo>

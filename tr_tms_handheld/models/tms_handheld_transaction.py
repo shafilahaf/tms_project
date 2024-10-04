@@ -24,6 +24,7 @@ class TMSHandheldReceipt(models.Model):
     noseries_count = fields.Integer(string = 'No Series Count')
     supplier_no_packing_list = fields.Char(string="Supplier & No Packing List")
     location_id = fields.Many2one('tms.locations', string='Location')
+    userid = fields.Char("User ID",default=lambda self: self.env.uid)
 
 
     def back_to_transaction(self):
@@ -66,10 +67,12 @@ class TMSHandheldReceipt(models.Model):
                 raise UserError("You cannot delete a purchase receipt that has been Posted.")
             
             reservation_entry = self.env['tms.reservation.entry'].search([
-                ('source_type', '=', '39'),
+                ('source_type', '=',  self.fnGetsourceType(self.document_type)),
                 ('source_id', '=', self.document_no)
             ])
-            reservation_entry.unlink()
+            
+            for re in reservation_entry :
+                re.unlink()
             
         return super(TMSHandheldReceipt, self).unlink()
     
@@ -90,13 +93,11 @@ class TMSHandheldReceipt(models.Model):
                 transfer_order = self.env['tms.transfer.header'].search([('no', '=', vals['source_doc_no'])], limit=1)
                 if not transfer_order:
                     raise ValidationError('Transfer Order not found.')
-                
+
             self.fnCreateDocNo(vals)
         elif 'document_type' not in vals:
-            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.transaction')
-        else:
-            raise ValidationError('Source Doc. No. is required.')
-
+            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.itemjournal')
+            
         return super(TMSHandheldReceipt, self).create(vals)
     
     #Global Function
@@ -161,29 +162,27 @@ class TMSHandheldReceipt(models.Model):
                
         action = self.env.ref('tr_tms_handheld.action_receipt_po').read()[0]
         action['domain'] = [('source_doc_no', '=', sourcno),('document_type','=',doctype)]
-        action['context'] = dict(self.env.context, create=False, edit=True)
+        action['context'] = dict(self.env.context, create=False, edit=True, delete=True)
         return action
     
     def fnCreateDocNo(self,vals) : 
-        existing_trans = self.env['tms.handheld.transaction'].search([('source_doc_no', '=', vals['source_doc_no']),('document_type','=',vals["document_type"])],order = 'id desc',limit=1)
-        if existing_trans:
-           
-            max_trans_number = existing_trans.noseries_count
-            vals['noseries_count'] = max_trans_number + 1
-        else:
-            vals['noseries_count'] = 1       
 
-        if vals["document_type"] in ["1","4","6"] :
-            title = "Receipt"
-        elif vals["document_type"] in ["2","3","5"] :
-            title = "Shipment"
-
-        vals['document_no'] = f"{vals['source_doc_no']}-{title}-{vals['noseries_count']:03d}"
-
-        if vals["document_type"] in ["8"] :
-            title = "Item Journal"
-            vals['document_no'] = f"{title}-{vals['noseries_count']:03d}"
-
+        if vals["document_type"] == '1' :
+            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.purchase_receipt')
+        elif vals["document_type"] == '2' :
+            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.purchase_shipment')
+        elif vals["document_type"] == '3' :
+            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.sales_shipment')
+        elif vals["document_type"] == '4' :
+            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.sales_receipt')
+        elif vals["document_type"] == '5' :
+            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.transfer_shipment')
+        elif vals["document_type"] == '6' :
+            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.transfer_receipt')
+        #elif vals["document_type"] == '7' :
+        #    vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.purchase_shipment')
+        # elif vals["document_type"] == '8' :
+        #     vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.itemjournal')
         return vals
 
     def scan_itemm(self):
@@ -203,33 +202,41 @@ class TMSHandheldReceipt(models.Model):
                 'create': False, 'edit': True, 'delete': True
             }
         }
+    
+    def fnGetsourceType(self,doctype) :
+        if doctype in ["1","2"] :
+            sourcetype = '39'
+        elif doctype in ["3","4"] :
+            sourcetype = '37'
+        elif doctype in ["5","6"] :
+            sourcetype = '5741' 
+        elif doctype == '8' :
+            sourcetype = '83' 
+
+        return sourcetype
         
+    def post(self):
+        if self.state == 'submitted':
+            raise UserError("You cannot post, transaction has been Posted.")
+        
+        if self.document_type == "8":
+            self.fnCreateItemJournalHeaderNav()
+            self.fnCreateItemJournalLineNav()
+            self.fnSendActionPostIJLNav()
+        else:
+            self.post_transaction()
+
     def post_transaction(self):
-        """
-        This method will change the status of the receipt to 'Submitted' and change quantity in line to purchase order nav
-        """
-        url = f'http://{self.company.ip_or_url_api}:{self.company.port_api}/Thomasong/OData/Company(\'{self.company.name}\')/Handheld_Line_OData?$format=json'
-        headers = {'Content-Type': 'application/json'}
-
-        username = self.company.username_api
-        password = self.company.password_api
-        
-        auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
-
+        eTag = ""
+        dicFilter = False
+        url,headers,auth = self.getUrlNav("Handheld_Line_OData",eTag,dicFilter)
+  
         #clear line update on nav
         self.postHandheldTransAction("ClearUpdateLine")
 
         for line in self.transaction_line_ids:
-            check_sn_info = False
-            if line.item_no.sn_specific_tracking == True:
-                check_sn_info = True
-            elif line.item_no.sn_purchase_inbound_tracking == True:
-                check_sn_info = True
-            elif line.item_no.lot_specific_tracking == True:
-                check_sn_info = True
-            elif line.item_no.lot_purchase_inbound_tracking == True:
-                check_sn_info = True
-
+            check_sn_info = self.fnCheckSNInfo(line)
+         
             newdocno = self.document_no
             doctype = self.fnCheckDocType()
             data = {
@@ -240,7 +247,7 @@ class TMSHandheldReceipt(models.Model):
                 "Processed_Header_ID": str(self.id),
                 "Item_No": line.item_no.no,
                 "External_Document_No" : str(self.vendor_shipment_no),
-                "Handheld_Receipt_No" : str(newdocno),
+                "Handheld_Document_No" : str(newdocno),
                 "Unit_Of_Measure_Code": line.item_uom.code
             }
             
@@ -255,6 +262,7 @@ class TMSHandheldReceipt(models.Model):
                 self.handheld_sn(line.line_no)
 
         # #posting - send to transaction nav
+
         if self.document_type in ['1','2']:
             self.postHandheldTransAction("Purchase")
         elif self.document_type in ['3','4']:
@@ -264,9 +272,9 @@ class TMSHandheldReceipt(models.Model):
 
         self.returnPage(self.document_type)
 
-    def post_item_journal_header(self):
+    def fnCreateItemJournalHeaderNav(self):
         if self.posting_date == False:
-            raise UserError('Please enter the Posting Date before submit')
+            raise UserError('Please enter the Posting Date before posting.')
         
         #get data
         eTag = ""
@@ -280,7 +288,7 @@ class TMSHandheldReceipt(models.Model):
             raise ValidationError( f'Nav Error {resp}')
         elif response.status_code == 200 :
             response_json = response.json()
-            status = response.headers.get('Status')
+            status = response_json.get('Status')
             if status == "Posted":
                 raise UserError("Item Journal has been posted in Nav")
             else :
@@ -291,11 +299,15 @@ class TMSHandheldReceipt(models.Model):
         #create new
         dicFilter = False
         url_header,headers,auth = self.getUrlNav("ItemJournalHH",eTag,dicFilter)
+        
         data_header = {
             "No": self.document_no,
             "Posting_Date": self.posting_date.isoformat(),
             "Location_Code": self.location_id.code,
-            "Document_Type" : self.fnCheckDocType()
+            "Document_Type" : self.fnCheckDocType(),
+            "Processed_Header_Id" : self.id,
+            "Status" : 'Released',
+            "Handheld_User" : self.env.user.login
         }
 
         response = requests.post(url_header, headers=headers, auth=auth, json=data_header)
@@ -304,8 +316,71 @@ class TMSHandheldReceipt(models.Model):
             response_json = response.json()
             resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
             raise ValidationError( f'Nav Error {resp}')
-        
 
+    def fnCreateItemJournalLineNav(self):
+        eTag = ""
+        dicFilter = False
+        url_line,headers,auth = self.getUrlNav("ItemJournalHHLine",eTag,dicFilter)
+
+
+        for line in self.transaction_line_ids:
+            data_line = {
+                "Document_No": self.document_no,
+                "Line_No": str(line.line_no),
+                "Posting_Date": self.posting_date.isoformat(),
+                "Entry_Type": line.entry_type,
+                "Item_No": line.item_no.no,
+                "Description": line.item_no.description,
+                "Unit_of_Measure_Code": line.item_uom.code,
+                "Quantity": str(line.qty_to_receive),
+                "Processed_Header_Id" : self.id
+            }
+            
+            response = requests.post(url_line, headers=headers, auth=auth, json=data_line)
+            
+            if response.status_code == 400 :
+                response_json = response.json()
+                resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text )
+                raise ValidationError( f'Nav Error {resp}')
+        
+            check_sn_info = self.fnCheckSNInfo(line)
+            if line.item_no and (check_sn_info==True):
+                self.handheld_sn(line.line_no)
+    
+    def fnSendActionPostIJLNav(self):
+        #get data
+        eTag = ""
+        dicFilter = {1 : "Document_Type", 2 : self.fnCheckDocType() , 3 : "No", 4 : self.document_no}
+        url_header,headers,auth = self.getUrlNav("ItemJournalHH",eTag,dicFilter)
+
+        response = requests.get(url_header, headers=headers, auth=auth)
+        if response.status_code == 400 :
+            response_json = response.json()
+            resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
+            raise ValidationError( f'Nav Error {resp}')
+        elif response.status_code == 200 :
+            response_json = response.json()
+            status = response_json.get('Status')
+            if status == "Posted":
+                raise UserError("Item Journal has been posted in Nav")
+            else :
+                etag = response.headers.get('ETag')
+                headers = {'Content-Type': 'application/json', 'If-Match': etag}
+                
+                #update to post
+                data_header = {
+                    "Status" : 'Posted'
+                }
+
+                response = requests.patch(url_header, headers=headers, auth=auth, json=data_header)
+
+                if response.status_code == 400 :
+                    response_json = response.json()
+                    resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
+                    raise ValidationError( f'Nav Error {resp}')
+                elif response.status_code == 204 :
+                    self.state = 'submitted'
+        
     def getUrlNav(self,apiname,etag,paramArray) : 
         if paramArray :
             varfilter = ""
@@ -334,39 +409,6 @@ class TMSHandheldReceipt(models.Model):
         auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
 
         return url_header,headers,auth
-
-    def post_item_journal_line(self):
-        eTag = ""
-        dicFilter = False
-        url_line,headers,auth = self.getUrlNav("ItemJournalHHLine",eTag,dicFilter)
-
-
-        for line in self.transaction_line_ids:
-            data_line = {
-                "Document_No": self.document_no,
-                "Line_No": str(line.line_no),
-                "Posting_Date": self.posting_date.isoformat(),
-                "Entry_Type": line.entry_type,
-                "Item_No": line.item_no.no,
-                "Description": line.item_no.description,
-                "Unit_of_Measure_Code": line.item_uom.code,
-                "Quantity": str(line.qty_to_receive),
-            }
-            
-            response = requests.post(url_line, headers=headers, auth=auth, json=data_line)
-            
-            if response.status_code == 400 :
-                response_json = response.json()
-                resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text )
-                raise ValidationError( f'Nav Error {resp}')
-        
-    def post(self):
-        if self.document_type == "8":
-            self.post_item_journal_header()
-            self.post_item_journal_line()
-        else:
-            self.post_transaction()
-
     def returnPage(self,doctype):
         model = ''
         title = ''
@@ -400,14 +442,10 @@ class TMSHandheldReceipt(models.Model):
 
     
     def handheld_sn(self,line_no):
-        url = f"http://192.168.1.5:9148/Thomasong/OData/Company('THOMASONG')/Handheld_SN_OData?$format=json"
-        headers = {'Content-Type': 'application/json'}
-
-        username = self.company.username_api
-        password = self.company.password_api
+        eTag = ""
+        dicFilter = False
+        url,headers,auth = self.getUrlNav("Handheld_SN_OData",eTag,dicFilter)
         
-        auth = HttpNtlmAuth(username, password)  # Using requests_ntlm2
-
         reservation_entries = self.env['tms.reservation.entry'].search([
             ('source_id','=',self.document_no),('line_no','=',line_no)
         ])
@@ -438,7 +476,7 @@ class TMSHandheldReceipt(models.Model):
                     raise ValidationError( f'Nav Error {resp}')
               
         else:
-            raise UserError('No SN/LOT Detail')
+            raise UserError('No SN/LOT Detail not found, please check data')
         
     def postHandheldTransAction(self,parAction):
         """
@@ -512,6 +550,19 @@ class TMSHandheldReceipt(models.Model):
 
         return doctype
 
+    def fnCheckSNInfo(self,line) : 
+        check_sn_info = False
+        if line.item_no.sn_specific_tracking == True:
+            check_sn_info = True
+        elif line.item_no.sn_purchase_inbound_tracking == True:
+            check_sn_info = True
+        elif line.item_no.lot_specific_tracking == True:
+            check_sn_info = True
+        elif line.item_no.lot_purchase_inbound_tracking == True:
+            check_sn_info = True
+        
+        return check_sn_info
+    
     def fnCreateMessage(self,message) :
         notification = {
         'type': 'ir.actions.client',

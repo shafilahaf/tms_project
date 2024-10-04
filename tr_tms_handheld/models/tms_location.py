@@ -8,3 +8,4 @@ class TmsLocations(models.Model):
 
     code = fields.Char(string='Code')
     name = fields.Char(string='Name')
+    priority = fields.Integer(string="Priority")

@@ -143,6 +143,8 @@ class TMSHandheldTransactionScan(models.Model):
         for record in self:
             if record.contains_lot and record.contains_sn:
                 record.contains_lot_sn = True
+            else:
+                record.contains_lot_sn = False
     
     def fnCheckTrackingCode(self,cekApa) :
         if cekApa == "SN" :
@@ -224,7 +226,6 @@ class TMSHandheldTransactionScan(models.Model):
         self.item_description = False
         self.quantity = False
         self.barcode_code = False
-        self.reservation_entry_ids = [(5, 0, 0)]  # Clear the One2many field
         self.sh_product_barcode_mobile = ''
         self.item_uom = False
         self.serial_number = ''
@@ -232,6 +233,8 @@ class TMSHandheldTransactionScan(models.Model):
         self.line_po = False
         self.line_so = False
         self.line_to = False
+        self.entry_type = False
+        #self.reservation_entry_ids = [(5, 0, 0)]  # Clear the One2many field
     
     # V2
     def submit_scan_line(self):
@@ -239,6 +242,12 @@ class TMSHandheldTransactionScan(models.Model):
 
         if not self.item_no or not self.handheld_transaction_id:
             raise UserError('Item No. must be selected.')
+        
+        if not self.entry_type and self.handheld_document_type == "8":
+            raise UserError('Entry Type is required for Item Journal')
+        
+        if not self.quantity and not (self.contains_sn or self.contains_lot or self.contains_lot_sn):
+            raise ValidationError(_("Quantity must be filled"))
 
         if self.item_no.man_expir_date_entry_reqd and self.item_no.strict_expiration_posting:
             for entry in self.reservation_entry_ids:
@@ -247,15 +256,7 @@ class TMSHandheldTransactionScan(models.Model):
 
         source_line = self.fnCheckSourceDoc(self.handheld_transaction_id.document_type)
 
-        #update ke transaction line - quantity to receive
-        #if not self.reservation_entry_ids:
-        #    qty_to_receive = self.quantity
-        #else:
-        #    qty_to_receive = sum(entry.quantity for entry in self.reservation_entry_ids)
-
-        #qty transaction line
-        #quantity = source_line[0].quantity if source_line else 0.0      
-
+    
         checksn = False
         if self.contains_sn or self.contains_lot or self.contains_lot_sn :
             checksn = True
@@ -267,7 +268,7 @@ class TMSHandheldTransactionScan(models.Model):
           
 
         empty_source_entries = self.env['tms.reservation.entry'].search([
-            ('source_id', '=', False)
+            ('source_id', '=', False),('purchase_scan_id','=',self.id)
         ])
 
         empty_source_entries.unlink()
@@ -292,7 +293,7 @@ class TMSHandheldTransactionScan(models.Model):
             
         elif self.handheld_transaction_id.document_type == "8" : 
             receipt_line = self.env['tms.handheld.transaction.line'].search([('handheld_transaction_id', '=', self.handheld_transaction_id.id),
-            ('item_no', '=', self.item_no.id),('item_uom', '=', self.item_uom.id)
+            ('item_no', '=', self.item_no.id),('item_uom', '=', self.item_uom.id),('entry_type', '=', self.entry_type)
             ],order="line_no desc",limit = 1)
           
             if receipt_line :
@@ -356,7 +357,7 @@ class TMSHandheldTransactionScan(models.Model):
                
             elif self.handheld_transaction_id.document_type == "8" : 
                 receipt_line = self.env['tms.handheld.transaction.line'].search([('handheld_transaction_id', '=', self.handheld_transaction_id.id)
-                ,('item_no', '=', entry.item_no),('item_uom', '=', iuom)
+                ,('item_no', '=', entry.item_no),('item_uom', '=', iuom),('entry_type', '=', self.entry_type)
                 ],order="line_no desc",limit = 1)
                 
                 if receipt_line :
@@ -373,14 +374,14 @@ class TMSHandheldTransactionScan(models.Model):
                                      
                 self.env['tms.reservation.entry'].create({
                     'item_no': item.no,
-                    'source_type': '39',  # Purchase Order
+                    'source_type': self.fnGetsourceType(self.handheld_transaction_id.document_type), 
                     'quantity': 1 if self.contains_sn else entry.quantity,
                     'serial_no': entry.serial_no,
                     'expiration_date': entry.expiration_date,
                     'source_id': self.handheld_transaction_id.document_no,
                     'lot_no': entry.lot_no,
                     'line_id' : receipt_line.id,
-                    'line_no': ln
+                    'line_no': receipt_line.line_no
                 })
                 
             else:
@@ -395,18 +396,18 @@ class TMSHandheldTransactionScan(models.Model):
                     'entry_type': self.entry_type if self.entry_type else False,
                 })
 
-                self.sendhandheldsnLotForCheck(entry.serial_no,entry.lot_no,entry.line_no,rcpt_line.id)
+                self.sendhandheldsnLotForCheck(entry.serial_no,entry.lot_no,rcpt_line.line_no,rcpt_line.id)
                 
                 self.env['tms.reservation.entry'].create({
                     'item_no': item.no,
-                    'source_type': '39',  # Purchase Order
+                    'source_type': self.fnGetsourceType(self.handheld_transaction_id.document_type), 
                     'quantity': 1 if self.contains_sn else entry.quantity,
                     'serial_no': entry.serial_no,
                     'expiration_date': entry.expiration_date,
                     'source_id': self.handheld_transaction_id.document_no,
                     'lot_no': entry.lot_no,
                     'line_id' : rcpt_line.id,
-                    'line_no': ln
+                    'line_no': rcpt_line.line_no
                 })
 
     def fngetLineNo(self,doctype) :
@@ -420,6 +421,19 @@ class TMSHandheldTransactionScan(models.Model):
         
         
         return line
+    
+
+    def fnGetsourceType(self,doctype) :
+        if doctype in ["1","2"] :
+            sourcetype = '39'
+        elif doctype in ["3","4"] :
+            sourcetype = '37'
+        elif doctype in ["5","6"] :
+            sourcetype = '5741' 
+        elif doctype == '8' :
+            sourcetype = '83' 
+
+        return sourcetype
 
     def fnCheckSourceDoc(self,doctype) : 
         
@@ -528,7 +542,7 @@ class TMSHandheldTransactionScan(models.Model):
         
         if response.status_code == 400 :
             response_json = response.json()
-            resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text )
+            resp = response_json.get('odata.error', {}).get('message', {}).get('value', response.text)
             raise ValidationError( f'Nav Error {resp}')
         
 
@@ -537,17 +551,21 @@ class TMSHandheldTransactionScan(models.Model):
         Redirect the user back to the purchase receipt form view.
         """
         self.ensure_one()
+        id = self.handheld_transaction_id.id
+        self.unlink()
         return {
             'type': 'ir.actions.act_window',
             'name': 'Purchase Receipt',
             'res_model': 'tms.handheld.transaction',
             'view_mode': 'form',
-            'res_id': self.handheld_transaction_id.id,
+            'res_id': id,
             'target': 'main',
             'context': {
                 'form_view_initial_mode': 'edit',
             }
         }
+    
+        
 
     @api.onchange('serial_number')
     def _onchange_serial_number(self):
@@ -604,7 +622,7 @@ class TMSHandheldTransactionScan(models.Model):
             'quantity': 1 if sn else self.quantity,  # Default quantity is 1 for serial number
             'purchase_scan_id': self.id,
             'expiration_date': self.exp_date if self.exp_date else False,
-            'source_type': '39',
+            'source_type': self.fnGetsourceType(self.handheld_transaction_id.document_type), 
             'item_no': self.item_no.no,
             'line_no': ln
          
@@ -615,8 +633,6 @@ class TMSHandheldTransactionScan(models.Model):
         self.barcode_code = ''
         self.exp_date = ''
         self.sh_product_barcode_mobile = ''
-       
-
 
     def _check_first_line_detail(self):
         """

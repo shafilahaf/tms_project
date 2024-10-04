@@ -10,3 +10,4 @@ from . import tms_sales_controller
 from . import tms_transfer_controller
 from . import tms_item_journal_controller
 from . import tms_location
+from . import home_page

@@ -29,7 +29,8 @@ class TMSReservationEntry(models.Model):
     ##
     line_id = fields.Integer('Line_ID')
     line_no = fields.Integer('Line No')
-    
+
+
     @api.depends('source_type')
     def _compute_source_type_int(self):
         for record in self:

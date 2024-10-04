@@ -28,6 +28,8 @@
         "views/tms_handheld_transaction_scan.xml",
         "views/tms_item_journal.xml",
         "views/tms_location.xml",
+        'views/overview.xml',
+        'wizard/tms_check_stock.xml',
     ],
     "assets": {
         "web.assets_backend": [
@@ -35,7 +37,6 @@
             'tr_tms_handheld/static/src/scss/custom.scss',
             'tr_tms_handheld/static/src/js/bus_notification.js',
             'tr_tms_handheld/static/src/js/ZXing.js',
-            # 'tr_tms_handheld/static/src/js/tree_button_transaction.js'
         ],
         'web.assets_qweb': [
             'tr_tms_handheld/static/src/xml/*.xml'

@@ -7,7 +7,7 @@
         <field name="arch" type="xml">
             <tree string="">
                 <field name="no" />
-                <field name="document_type" />
+                <!-- <field name="document_type" /> -->
                 <field name="sell_to_customer_no" />
                 <field name="sell_to_customer_name" />
                 <field name="order_date" />
@@ -21,24 +21,21 @@
         <field name="arch" type="xml">
             <form string="">
                 <header>
-                    <button name="create_transaction_header" string="Create Shipment" type="object" class="oe_highlight"/>
+                    <button name="create_transaction_header" string="Create Shipment" type="object" class="oe_highlight" attrs ="{'invisible':[('document_type','!=','Order')]}"/>
+                    <button name="create_transaction_header" string="Create Receipt" type="object" class="oe_highlight" attrs ="{'invisible':[('document_type','!=','Return Order')]}"/>
                 </header>
                 <sheet>
-                    <button name="view_transaction_header" type="object" string="View Shipment" class="btn-primary"/>
-                    <group string="Document Information">
-                        <field name="no" />
+                    <button name="view_transaction_header" type="object" string="View Shipment" class="btn-primary" attrs ="{'invisible':[('document_type','!=','Order')]}"/>
+                    <button name="view_transaction_header" type="object" string="View Receipt" class="btn-primary" attrs ="{'invisible':[('document_type','!=','Return Order')]}"/>
+                    <group>
                         <field name="document_type" />
+                        <field name="no" />
+                         <field name="sell_to_customer_name" string="Customer Name"/>
                         <field name="order_date" />
-                        <field name="status" />
-                        <field name="complete_shipment" />
-                    </group>
-                    <group string="Customer Information">
-                        <group>
-                            <field name="sell_to_customer_name" string="Customer Name"/>
-                        </group>
-                    </group>
-                    <group string="Store Information">
+                        <field name="location_code" />
                         <field name="store_no" />
+                        <field name="complete_shipment" />
+                        <field name="status" />
                     </group>
                     <notebook>
                         <page name="sales_lines" string="Sales Lines">
@@ -48,12 +45,23 @@
                                     <field name="document_no" force_save="1" invisible="1" />
                                     <field name="line_no" />
                                     <field name="no" />
-                                    <field name="location_code" />
-                                    <field name="quantity" />
-                                    <field name="unit_of_measure_code" />
-                                    <field name="qty_to_ship_base" />
-                                    <field name="qty_shipped_base" />
+                                    <field name="description" />
+                                    <field name="quantity" string="Qty."/>
+                                    <field name="unit_of_measure_code" string="UoM"/>
+                                    <field name="qty_shipped_base" string="Qty. Processed"/>
                                 </tree>
+                                <form>
+                                    <group>
+                                        <field name="document_type" force_save="1" invisible="1" />
+                                        <field name="document_no" force_save="1" invisible="1" />
+                                        <field name="line_no" />
+                                        <field name="no" />
+                                        <field name="description" />
+                                        <field name="quantity" string="Qty."/>
+                                        <field name="unit_of_measure_code" string="UoM"/>
+                                        <field name="qty_shipped_base" string="Qty. Processed"/>
+                                    </group>
+                                </form>
                             </field>
                         </page>
                     </notebook>

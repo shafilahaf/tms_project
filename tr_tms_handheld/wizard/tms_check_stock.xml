@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tms_check_stock_form" model="ir.ui.view">
+        <field name="name">tms.check.stock.wizard.view.form</field>
+        <field name="model">tms.check.stock.wizard</field>
+        <field name="arch" type="xml">
+            <form string="">
+                <sheet>
+                    <group>
+                        <field name="sh_product_barcode_mobile"/>
+                        <script type="text/javascript" src="/sh_product_barcode_mobile/static/src/js/sh_product_barcode_mobile.js"></script>
+                        <section class="oe_edit_only">
+                            <div>
+                                <a role="button" style="color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-primary" id="js_id_sh_product_barcode_mobile_start_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Start
+                                </a>
+                                <a role="button" style="display: none; color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-danger" id="js_id_sh_product_barcode_mobile_reset_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Stop
+                                </a>
+                            </div>
+                            <div id="js_id_sh_product_barcode_mobile_vid_div" style="display: none;">
+                                <group style="margin-bottom: 10px;">
+                                    <div class="form-group row" style="margin-bottom: 0px;">
+                                        <strong style="align-self: center;" class="col-3">Camera</strong>
+                                        <select class="col-8 form-control" id="js_id_sh_product_barcode_mobile_cam_select"> </select>
+                                    </div>
+                                </group>
+                                <video id="video" class="cls_sh_all_in_one_mbs_video_tag" width="600" height="400" style="border: 1px solid gray;"></video>
+                                <span style="display: block;">Result:</span>
+                                <code id="js_id_sh_product_barcode_mobile_result"></code>
+                            </div>
+                        </section>
+                        <field name="item_id" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
+                        <field name="location_id" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
+                    </group>
+                    <notebook>
+                        <page name="line" string="Lines">
+                            <field name="check_line_ids" widget='one2many_list'>
+                                <tree editable="bottom" create="false" edit = "false" delete ="false">
+                                    <field name="location_id" readonly="1" />
+                                    <field name="inventory" readonly="1"/>
+                                </tree>
+                                <form>
+                                    <group>
+                                        <field name="location_id"/>
+                                        <field name="inventory"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                    <footer>
+                        <button name="check_stock" string="Check Stock" type="object" class="oe_highlight" style="margin-top: 10px;"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

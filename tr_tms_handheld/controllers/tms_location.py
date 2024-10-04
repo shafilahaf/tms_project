@@ -34,6 +34,7 @@ class TmsLocation(http.Controller):
         # Extracting data from the request
         code = data.get('Code')
         name = data.get('Name')
+        priority = data.get('Priority')
 
         tms_location = request.env['tms.locations'].sudo()
         existing_location = tms_location.search([('code', '=', code)])
@@ -43,6 +44,7 @@ class TmsLocation(http.Controller):
                 existing_location.write({
                     'code': code,
                     'name': name,
+                    'priority': priority,
                 })
                 return {
                     'message': 'Location updated successfully',
@@ -53,6 +55,7 @@ class TmsLocation(http.Controller):
                 tms_location.create({
                     'code': code,
                     'name': name,
+                    'priority': priority,
                 })
                 return {
                     'message': 'Location created successfully',

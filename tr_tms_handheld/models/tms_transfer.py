@@ -73,6 +73,7 @@ class TmsTransferHeader(models.Model):
 class TmsTransferLine(models.Model):
     _name = 'tms.transfer.line'
     _description = 'TMS Transfer Line'
+    _rec_name = 'combination'
 
     header_id = fields.Many2one('tms.transfer.header', string='Header')
     document_no = fields.Char(string='Document No', size=20)
@@ -109,6 +110,7 @@ class TmsTransferLine(models.Model):
     derived_from_line_no = fields.Integer(string='Derived From Line No.')
     keterangan_dus = fields.Text(string='Keterangan Dus', size=20)
     item_no_no = fields.Char(string='Item Number', store=True)
+    combination = fields.Char(string='Combination', compute='_compute_fields_combination')
 
     def name_get(self):
         result = []
@@ -116,3 +118,8 @@ class TmsTransferLine(models.Model):
             display_name = f"{rec.line_no} - {rec.uom_code}"
             result.append((rec.id, display_name))
         return result
+    
+    @api.depends('line_no', 'uom_code')
+    def _compute_fields_combination(self):
+        for rec in self:
+            rec.combination = str(rec.line_no) + ' - ' + rec.uom_code

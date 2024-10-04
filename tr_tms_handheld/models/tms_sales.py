@@ -41,7 +41,7 @@ class TmsSalesHeader(models.Model):
     ], string="Status")
     return_receipt_no_series = fields.Char(string="Return Receipt No. Series", size=10)
     store_no = fields.Char(string="Store No.", size=10)
-    complete_shipment = fields.Boolean('Complete Shipment')
+    complete_shipment = fields.Boolean('Completely Shipped')
     
 
     sales_line_ids = fields.One2many(
@@ -61,6 +61,7 @@ class TmsSalesHeader(models.Model):
 class TmsSalesLine(models.Model):
     _name = "tms.sales.order.line"
     _description = "TMS Sales Line"
+    _rec_name = 'combination'
 
     header_id = fields.Many2one("tms.sales.order.header", string="Header", ondelete='cascade')
     document_type = fields.Selection([
@@ -110,9 +111,16 @@ class TmsSalesLine(models.Model):
     return_reason_code = fields.Char(string="Return Reason Code", size=10)
     item_no_no = fields.Char(string='Item Number', store=True)
 
+    combination = fields.Char(string='Combination', compute='_compute_fields_combination')
+
     def name_get(self):
         result = []
         for rec in self:
             display_name = f"{rec.line_no} - {rec.unit_of_measure_code}"
             result.append((rec.id, display_name))
         return result
+    
+    @api.depends('line_no', 'unit_of_measure_code')
+    def _compute_fields_combination(self):
+        for rec in self:
+            rec.combination = str(rec.line_no) + ' - ' + rec.unit_of_measure_code

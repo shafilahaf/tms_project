@@ -40,7 +40,7 @@ class TmsPurchaseOrderHeader(models.Model):
     
    
     # update
-    complete_received = fields.Boolean('Complete Received')
+    complete_received = fields.Boolean('Completely Received')
     po_reopen = fields.Boolean('Reopen')
     # update
 
@@ -60,6 +60,7 @@ class TmsPurchaseOrderHeader(models.Model):
 class TmsPurchaseOrderLine(models.Model):
     _name = 'tms.purchase.order.line'
     _description = 'TMS Purchase Order Line'
+    _rec_name = 'combination'
 
     header_id = fields.Many2one('tms.purchase.order.header', string='Header', ondelete='cascade')
     document_type = fields.Selection([
@@ -107,6 +108,8 @@ class TmsPurchaseOrderLine(models.Model):
     notes = fields.Text('Notes', size=100)
 
     item_no_no = fields.Char(string='Item Number', store=True)
+
+    combination = fields.Char(string='Combination', compute='_compute_fields_combination')
  
     def name_get(self):
         result = []
@@ -114,6 +117,11 @@ class TmsPurchaseOrderLine(models.Model):
             display_name = f"{rec.line_no} - {rec.unit_of_measure_code.code}"
             result.append((rec.id, display_name))
         return result
+    
+    @api.depends('line_no', 'unit_of_measure_code')
+    def _compute_fields_combination(self):
+        for rec in self:
+            rec.combination = str(rec.line_no) + ' - ' + rec.unit_of_measure_code.code
     
     # @api.onchange('no')
     # def _onchange_no(self):

@@ -19,10 +19,12 @@
     <field name="arch" type="xml">
         <form string="Purchase Order Header">
             <header>
-                <button name="create_po_receipt" string="Create Receipt" type="object" class="oe_highlight" attrs ="{'invisible':[('complete_received','=', True)]}"/>
+                <button name="create_po_receipt" string="Create Receipt" type="object" class="oe_highlight" attrs ="{'invisible':['|',('complete_received','=', True),('document_type','!=','Order')]}"/>
+                <button name="create_po_receipt" string="Create Shipment" type="object" class="oe_highlight" attrs ="{'invisible':['|',('complete_received','=', True),('document_type','!=','Return Order')]}"/>
             </header>
             <sheet>
-                <button name="receipt_po" type="object" string="View Receipts" class="btn-primary"/>
+                <button name="receipt_po" type="object" string="View Receipts" class="btn-primary" attrs ="{'invisible':[('document_type','!=','Order')]}"/>
+                <button name="receipt_po" type="object" string="View Shipments" class="btn-primary" attrs ="{'invisible':[('document_type','!=','Return Order')]}"/>
                 <group>
                     <group>
                         <field name="document_type" />
@@ -39,23 +41,23 @@
                     <page string="Lines">
                         <field name="purchase_order_line_ids" readonly="1">
                             <tree editable="bottom">
+                                <field name="line_no" readonly="1"/>
                                 <field name="no" readonly="1"/>
                                 <field name="description" readonly="1"/>
-                                <field name="unit_of_measure_code" string="UoM" readonly="1"/>
                                 <field name="quantity" string="Qty." readonly="1"/>
-                                <field name="qty_to_receive" string="Qty. To Receive" readonly="1"/>
-                                <field name="qty_received" string="Qty. Received" readonly="1"/>
-                                <field name="quantity_base" />
+                                <field name="unit_of_measure_code" string="UoM" readonly="1"/>
+                                <field name="qty_received" string="Qty. Processed" readonly="1"/>
+                                <!-- <field name="quantity_base" /> -->
                             </tree>
                             <form>
                                 <group>
-                                    <field name="no" />
-                                    <field name="description"/>
-                                    <field name="unit_of_measure_code"/>
-                                    <field name="quantity"/>
-                                    <field name="qty_to_receive" string="Qty. to Process"/>
-                                    <field name="qty_received" string="Qty. Processed"/>
-                                    <field name="quantity_base" />
+                                    <field name="line_no" readonly="1"/>
+                                    <field name="no" readonly="1"/>
+                                    <field name="description" readonly="1"/>
+                                    <field name="quantity" string="Qty." readonly="1"/>
+                                    <field name="unit_of_measure_code" string="UoM" readonly="1"/>
+                                    <field name="qty_received" string="Qty. Processed" readonly="1"/>
+                                    <!-- <field name="quantity_base" /> -->
                                 </group>
                             </form>
                         </field>
