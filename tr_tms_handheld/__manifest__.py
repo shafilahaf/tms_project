@@ -28,7 +28,7 @@
         "views/tms_handheld_transaction_scan.xml",
         "views/tms_item_journal.xml",
         "views/tms_location.xml",
-        'views/overview.xml',
+        # 'views/overview.xml',
         'wizard/tms_check_stock.xml',
     ],
     "assets": {

@@ -24,3 +24,5 @@ access_tms_location_administrator,TmsLocation,model_tms_locations,tms_handheld_a
 
 access_tms_check_stock_administrator,TmsCheckStockWizard,model_tms_check_stock_wizard,tms_handheld_administrator,1,1,1,1
 access_tms_check_stock_line_administrator,TmsCheckStockLineWizard,model_tms_check_stock_line_wizard,tms_handheld_administrator,1,1,1,1
+access_tms_overview_administrator,TmsOverview,model_tms_overview,tms_handheld_administrator,1,1,0,1
+

@@ -112,6 +112,13 @@
         <field name="context">{'create': True, 'edit': False, 'delete': True}</field>
     </record>
 
+    <record id="action_tms_overview" model="ir.actions.act_window">
+        <field name="name">Overview</field>
+        <field name="res_model">tms.overview</field>
+        <field name="view_mode">kanban</field>
+        <!-- <field name="context">{'create': True, 'edit': False, 'delete': True}</field> -->
+    </record>
+
     <record id="action_receipt_po" model="ir.actions.act_window">
         <field name="name">Transaction</field>
         <field name="res_model">tms.handheld.transaction</field>
@@ -146,6 +153,7 @@
     <!-- Menuitem -->
     <menuitem id="menu_tms_handheld" name="TMS Handheld" sequence="10" web_icon="tr_tms_handheld,static/description/odoo_icon.png"/>
 
+    <menuitem id="menu_tms_handheld_overview" name="Overview" parent="menu_tms_handheld" action="action_tms_overview" sequence="5"/>
     <menuitem id="menu_tms_handheld_purchase" name="Purchase" parent="menu_tms_handheld" sequence="10"/>
     <menuitem id="menu_tms_purchase_order" name="Purchase Order" parent="menu_tms_handheld_purchase" action="action_tms_purchase_orderss" sequence="10"/>
     <menuitem id="menu_tms_purchase_order_return" name="Purchase Return Order" parent="menu_tms_handheld_purchase" action="action_tms_purchase_orderss_return" sequence="20"/>
