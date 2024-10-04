@@ -12,8 +12,7 @@
               <field name="item_no"/>
               <field name="description"/>
               <field name="description_2"/>
-              <field name="barcode_type_id" />
-              <field name="barcode_code" />
+ 
             </group>
           </sheet>
         </form>
@@ -29,8 +28,7 @@
             <field name="item_no"/>
             <field name="description"/>
             <field name="description_2"/>
-            <field name="barcode_type_id" />
-            <field name="barcode_code" />
+
         </tree>
       </field>
     </record>

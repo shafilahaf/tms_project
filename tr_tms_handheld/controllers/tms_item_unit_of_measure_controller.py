@@ -2,9 +2,30 @@ from odoo import http
 from odoo.http import request
 import logging
 
-_logger = logging.getLogger(__name__)
+from odoo.addons.project_api.models.common import invalid_response, valid_response
+import functools
 
+def validate_token(func):
+    @functools.wraps(func)
+    def wrap(self, *args, **kwargs):
+        access_token = request.httprequest.headers.get("access_token")
+        if not access_token:
+            return invalid_response("access_token_not_found", "missing access token in request header", 401)
+        access_token_data = request.env["api.access_token"].sudo().search([("token", "=", access_token)],
+                                                                          order="id DESC", limit=1)
+
+        if access_token_data.find_or_create_token(user_id=access_token_data.user_id.id) != access_token:
+            return invalid_response("access_token", "token seems to have expired or invalid", 401)
+
+        request.session.uid = access_token_data.user_id.id
+        request.uid = access_token_data.user_id.id
+        return func(self, *args, **kwargs)
+
+    return wrap
+
+_logger = logging.getLogger(__name__)
 class TmsItemUoM(http.Controller):
+    @validate_token
     @http.route('/api/tms_item_uom', auth='none', methods=['POST'], csrf=False, type='json')
     def create_item_uom(self, **kw):
         """
@@ -23,8 +44,8 @@ class TmsItemUoM(http.Controller):
 
         tms_item_uom = request.env['tms.item.uom'].sudo()
 
-        if tms_item_uom.search([('code', '=', code)]):
-            uom = tms_item_uom.search([('code', '=', code)])
+        if tms_item_uom.search([('code', '=', code), ('item_no','=',item_no)]):
+            uom = tms_item_uom.search([('code', '=', code), ('item_no','=',item_no)])
             uom.write({
                 'code': code,
                 'item_no': item_no,

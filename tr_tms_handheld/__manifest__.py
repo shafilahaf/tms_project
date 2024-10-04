@@ -14,7 +14,6 @@
         "views/tms_company_inherit.xml",
         "views/tms_company_inherit.xml",
         "views/tms_purchase_order.xml",
-        "views/tms_receipt.xml",
         "views/tms_receipt_details.xml",
         "views/tms_sales.xml",
         "views/tms_transfer.xml",
@@ -25,11 +24,22 @@
         "views/tms_item_identifiers.xml",
         "views/tms_item_variant.xml",
         "views/tms_reservation_entry.xml",
-        "views/tms_purchase_receipt.xml",
-        "views/tms_purchase_scan.xml",
+        "views/tms_handheld_transaction.xml",
+        "views/tms_handheld_transaction_scan.xml",
+        "views/tms_item_journal.xml",
+        "views/tms_location.xml",
+        # 'views/overview.xml',
+        'wizard/tms_check_stock.xml',
     ],
     "assets": {
         "web.assets_backend": [
+            'tr_tms_handheld/static/src/css/tree_view.css',
+            'tr_tms_handheld/static/src/scss/custom.scss',
+            'tr_tms_handheld/static/src/js/bus_notification.js',
+            'tr_tms_handheld/static/src/js/ZXing.js',
+        ],
+        'web.assets_qweb': [
+            'tr_tms_handheld/static/src/xml/*.xml'
         ],
     },
 }

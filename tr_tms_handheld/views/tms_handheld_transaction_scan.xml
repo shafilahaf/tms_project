@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tms_purchase_scan_item_view_form" model="ir.ui.view">
+        <field name="name">tms.handheld.transaction.scan.view.form</field>
+        <field name="model">tms.handheld.transaction.scan</field>
+        <field name="arch" type="xml">
+            <form string="">
+                <sheet>
+                    <div class="oe_button_group" style="margin-bottom: 15px;">
+                        <button name="clear_value" string="Clear" type="object" class="oe_highlight" />
+                        <button name="submit_scan_line" string="Submit" type="object" class="oe_highlight" style="margin-left: 10px;" />
+                        <button name="back_to_receipt" string="Back" type="object" class="oe_highlight" style="margin-left: 10px;" />
+                    </div>
+                    <group>
+
+                        <field name="sh_product_barcode_mobile" string="Barcode Code" force_save="1"/>
+                        <script type="text/javascript" src="/sh_product_barcode_mobile/static/src/js/sh_product_barcode_mobile.js"></script>
+                        <section class="oe_edit_only">
+                            <div>
+                                <a role="button" style="color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-primary" id="js_id_sh_product_barcode_mobile_start_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Start
+                                </a>
+                                <a role="button" style="display: none; color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-danger" id="js_id_sh_product_barcode_mobile_reset_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Stop
+                                </a>
+                            </div>
+                            <div id="js_id_sh_product_barcode_mobile_vid_div" style="display: none;">
+                                <group style="margin-bottom: 10px;">
+                                    <div class="form-group row" style="margin-bottom: 0px;">
+                                        <strong style="align-self: center;" class="col-3">Camera</strong>
+                                        <select class="col-8 form-control" id="js_id_sh_product_barcode_mobile_cam_select"> </select>
+                                    </div>
+                                </group>
+                                <video id="video" class="cls_sh_all_in_one_mbs_video_tag" width="600" height="400" style="border: 1px solid gray;"></video>
+                                <span style="display: block;">Result:</span>
+                                <code id="js_id_sh_product_barcode_mobile_result"></code>
+                            </div>
+                        </section>
+                        <field name="item_no" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
+                        <field name="entry_type" attrs ="{'invisible':[('handheld_document_type','not in', ['8'])]}"/>
+                        <field name="line_po" force_save="1" attrs ="{'invisible':[('handheld_document_type','not in', ['1','2'])]}" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
+                        <field name="line_so" force_save="1" attrs ="{'invisible':[('handheld_document_type','not in', ['3','4'])]}" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
+                        <field name="line_to" force_save="1" attrs ="{'invisible':[('handheld_document_type','not in', ['5','6'])]}" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
+                        <field name="item_description" force_save="1"/>
+                        <field name="handheld_document_type" invisible="1"/>
+
+                        <!-- <field name="serial_number" attrs="{'invisible': [('contains_sn','=',False)]}"/> -->
+                        <field name="serial_number" attrs="{'invisible': [('contains_lot_sn', '=', False), '|', ('contains_sn', '=', False), ('contains_lot_sn', '=', True)]}"/>
+                        <script type="text/javascript" src="/tr_tms_handheld/static/src/js/serial_number.js"></script>
+                        <section class="oe_edit_only" attrs="{'invisible': [('contains_lot_sn', '=', False), '|', ('contains_sn', '=', False), ('contains_lot_sn', '=', True)]}">
+                            <div>
+                                <a role="button" style="color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-primary" id="js_id_serial_number_start_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Start
+                                </a>
+                                <a role="button" style="display: none; color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-danger" id="js_id_serial_number_reset_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Stop
+                                </a>
+                            </div>
+                            <div id="js_id_serial_number_vid_div" style="display: none;">
+                                <group style="margin-bottom: 10px;">
+                                    <div class="form-group row" style="margin-bottom: 0px;">
+                                        <strong style="align-self: center;" class="col-3">Camera</strong>
+                                        <select class="col-8 form-control" id="js_id_serial_number_cam_select"> </select>
+                                    </div>
+                                </group>
+                                <video id="video-sn" class="cls_serial_video_tag" width="600" height="400" style="border: 1px solid gray;"></video>
+                                <span style="display: block;">Result:</span>
+                                <code id="js_id_serial_number_result"></code>
+                            </div>
+                        </section>
+
+                        <!-- <field name="lot_number" attrs="{'invisible': ['|',('contains_lot','=',False), ('contains_lot_sn','=',False)]}"/> -->
+                        <field name="lot_number" attrs="{'invisible': [('contains_lot_sn', '=', False), '|', ('contains_lot', '=', False), ('contains_lot_sn', '=', True)]}"/>
+                        <field name="exp_date" invisible="1"/>
+                        <field name="item_uom" attrs="{'invisible': ['|',('contains_lot','=',True), ('contains_sn','=',True)]}" force_save="1" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
+                        <field name="item_no_no" invisible="1"/>
+                        <field name="quantity" widget="char" attrs="{'invisible': [('contains_sn','=',True)]}"/>
+                        <field name="available_item_ids" invisible="1"/>
+                        <field name="item_tracking_code" invisible="1"/>
+                        <field name="contains_sn" invisible="1"/>
+                        <field name="contains_lot" invisible="1"/>
+                        <field name="contains_lot_sn" invisible="1"/>
+                        <field name="source_doc_no" invisible="1"/>
+                    </group>
+                    <notebook>
+                        <page name="reservation_entry" string="Reservation Entry" attrs="{'invisible': [('contains_lot','=',False), ('contains_sn','=',False)]}">
+                            <field name="reservation_entry_ids">
+                                <tree editable="bottom" create="false">
+                                    <field name="line_no" invisible="1"/>
+                                    <field name="item_no" invisible="1"/>
+                                 
+                                    <field name="serial_no" />
+                                    <field name="lot_no" />
+                                    <field name="quantity" />
+                                    <field name="expiration_date" />
+                                </tree>
+                                <form >
+                                    <group>
+                                        <field name="line_no" invisible="1"/>
+                                        <field name="item_no" invisible="1"/>
+                                       
+                                        <field name="serial_no" />
+                                        <field name="lot_no" />
+                                        <field name="quantity" />
+                                        <field name="expiration_date" />
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

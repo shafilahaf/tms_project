@@ -1,10 +1,29 @@
 from odoo import http
 from odoo.http import request
 import logging
-
+from odoo.addons.project_api.models.common import invalid_response, valid_response
+import functools
 _logger = logging.getLogger(__name__)
 
+def validate_token(func):
+    @functools.wraps(func)
+    def wrap(self, *args, **kwargs):
+        access_token = request.httprequest.headers.get("access_token")
+        if not access_token:
+            return invalid_response("access_token_not_found", "missing access token in request header", 401)
+        access_token_data = request.env["api.access_token"].sudo().search([("token", "=", access_token)],
+                                                                          order="id DESC", limit=1)
+
+        if access_token_data.find_or_create_token(user_id=access_token_data.user_id.id) != access_token:
+            return invalid_response("access_token", "token seems to have expired or invalid", 401)
+
+        request.session.uid = access_token_data.user_id.id
+        request.uid = access_token_data.user_id.id
+        return func(self, *args, **kwargs)
+
+    return wrap
 class TmsItem(http.Controller):
+    @validate_token
     @http.route('/api/tms_item', auth='none', methods=['POST'], csrf=False, type='json')
     def create_item(self, **kw):
         """
@@ -27,6 +46,7 @@ class TmsItem(http.Controller):
         item_tracking_code = data.get('Item_Tracking_Code')
         division_code = data.get('Division Code')
         barcode = data.get('Barcode')
+        hh_id = data.get('HH Id')
 
         # Extracting tracking flags
         tracking_flags = {
@@ -62,7 +82,7 @@ class TmsItem(http.Controller):
             }
 
         tms_item = request.env['tms.item'].sudo()
-        existing_item = tms_item.search([('no', '=', no)])
+        existing_item = tms_item.search([('id', '=', hh_id)])
 
         try:
             if not item_tracking_code:
@@ -90,7 +110,8 @@ class TmsItem(http.Controller):
                 })
                 return {
                     'message': 'Item updated successfully',
-                    'response': 200
+                    'response': 200,
+                    'Id': existing_item.id
                 }
             else:
                 tms_item.create({
@@ -110,9 +131,11 @@ class TmsItem(http.Controller):
                     'barcode': barcode,
                     **tracking_flags
                 })
+                existing_item = tms_item.search([('no', '=', no)])
                 return {
                     'message': 'Item created successfully',
-                    'response': 200
+                    'response': 200,
+                    'Id': existing_item.id
                 }
         except Exception as e:
             _logger.error("Error creating/updating Item: %s", e)

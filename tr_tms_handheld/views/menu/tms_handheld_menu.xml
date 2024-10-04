@@ -6,28 +6,48 @@
         <field name="name">Unit of Measures</field>
         <field name="res_model">tms.unit.of.measures</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': True}</field>
     </record>
 
     <record id="action_tms_items" model="ir.actions.act_window">
         <field name="name">Items</field>
         <field name="res_model">tms.item</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': False, 'edit': False, 'delete': True}</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_tms_location" model="ir.actions.act_window">
+        <field name="name">Location</field>
+        <field name="res_model">tms.locations</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_tms_transaction_journal" model="ir.actions.act_window">
+        <field name="name">Item Journal</field>
+        <field name="res_model">tms.handheld.transaction</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': True, 'edit': True, 'delete': True, 'default_document_type': '8'}</field>
+        <field name="domain">[('document_type', 'in', ['8'])]</field>
+    </record>
+
+    <record id="action_tms_item_journal" model="ir.actions.act_window">
+        <field name="name">Item Journal Phys</field>
+        <field name="res_model">tms.item.journal</field>
+        <field name="view_mode">tree,form</field>
     </record>
 
     <record id="action_tms_item_uom" model="ir.actions.act_window">
         <field name="name">Items UoM</field>
         <field name="res_model">tms.item.uom</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': True}</field>
     </record>
 
     <record id="action_tms_item_identifiers" model="ir.actions.act_window">
         <field name="name">Items Identifiers</field>
         <field name="res_model">tms.item.identifiers</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="context">{'create': False, 'edit': True, 'delete': True}</field>
     </record>
 
     <record id="action_tms_item_variant" model="ir.actions.act_window">
@@ -37,82 +57,117 @@
         <field name="context">{'create': False, 'edit': True, 'delete': True}</field>
     </record>
 
-    <record id="action_tms_receipt" model="ir.actions.act_window">
-        <field name="name">Receipt</field>
-        <field name="res_model">tms.receipt.header</field>
-        <field name="view_mode">tree,form</field>
-    </record>
-
     <record id="action_tms_purchase_orderss" model="ir.actions.act_window">
         <field name="name">Purchase Order</field>
         <field name="res_model">tms.purchase.order.header</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': False, 'edit': False, 'delete': True}</field>
-        <!-- <field name="domain">[('complete_received', '=', False), ('status', '=', 'Released')]</field> -->
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="domain">[('complete_received', '=', False), ('status', '=', 'Released'), ('document_type', '=', 'Order')]</field>
     </record>
 
-    <record id="action_tms_sales" model="ir.actions.act_window">
-        <field name="name">Sales</field>
+    <record id="action_tms_purchase_orderss_return" model="ir.actions.act_window">
+        <field name="name">Purchase Return Order</field>
+        <field name="res_model">tms.purchase.order.header</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="domain">[('complete_received', '=', False), ('status', '=', 'Released'), ('document_type', '=', 'Return Order')]</field>
+    </record>
+
+    <record id="action_tms_purchase_orderss_complete" model="ir.actions.act_window">
+        <field name="name">PO Completed Received</field>
+        <field name="res_model">tms.purchase.order.header</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="domain">[('complete_received', '=', True), ('document_type', '=', 'Order')]</field>
+    </record>
+
+    <record id="action_tms_sales_order" model="ir.actions.act_window">
+        <field name="name">Sales Order</field>
         <field name="res_model">tms.sales.order.header</field>
         <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="domain">[('document_type', '=', 'Order')]</field>
+    </record>
+
+    <record id="action_tms_sales_return" model="ir.actions.act_window">
+        <field name="name">Sales Return Order</field>
+        <field name="res_model">tms.sales.order.header</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="domain">[('document_type', '=', 'Return Order')]</field>
     </record>
 
     <record id="action_tms_transfer" model="ir.actions.act_window">
         <field name="name">Transfer</field>
         <field name="res_model">tms.transfer.header</field>
         <field name="view_mode">tree,form</field>
+         <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+         <field name="domain">[('status', '=', 'Released')]</field>
     </record>
 
     <record id="action_tms_reservation_entry" model="ir.actions.act_window">
         <field name="name">Reservation Entry</field>
         <field name="res_model">tms.reservation.entry</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'create': True, 'edit': True, 'delete': True}</field>
+        <field name="context">{'create': True, 'edit': False, 'delete': True}</field>
     </record>
 
-    <record id="action_tms_item_journal_line" model="ir.actions.act_window">
-        <field name="name">Item Journal Line</field>
-        <field name="res_model">tms.item.journal.line</field>
-        <field name="view_mode">tree,form</field>
+    <record id="action_tms_overview" model="ir.actions.act_window">
+        <field name="name">Overview</field>
+        <field name="res_model">tms.overview</field>
+        <field name="view_mode">kanban</field>
+        <!-- <field name="context">{'create': True, 'edit': False, 'delete': True}</field> -->
     </record>
 
     <record id="action_receipt_po" model="ir.actions.act_window">
-        <field name="name">Receipts</field>
-        <field name="res_model">tms.purchase.receipt.header</field>
+        <field name="name">Transaction</field>
+        <field name="res_model">tms.handheld.transaction</field>
         <field name="view_mode">tree,form</field>
         <field name="help" type="html">
             <p class="oe_view_nocontent_create">
-                Back to Purchase Order to crate new receipt
+                No Transaction
             </p>
         </field>
     </record>
 
+    <record id="action_transaction_header" model="ir.actions.act_window">
+        <field name="name">Transaction</field>
+        <field name="res_model">tms.handheld.transaction</field>
+        <field name="view_mode">form</field>
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                Transaction Header not created
+            </p>
+        </field>
+    </record>
+
+    <!-- Wizard -->
+    <record id="action_check_stock_wizard" model="ir.actions.act_window">
+        <field name="name">Check Stock</field>
+        <field name="res_model">tms.check.stock.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+    </record>
+    <!-- Wizard -->
+
     <!-- Menuitem -->
     <menuitem id="menu_tms_handheld" name="TMS Handheld" sequence="10" web_icon="tr_tms_handheld,static/description/odoo_icon.png"/>
 
-    <menuitem id="menu_tms_handheld_checkstock" name="Check Stock" parent="menu_tms_handheld" sequence="10"/>
+    <menuitem id="menu_tms_handheld_overview" name="Overview" parent="menu_tms_handheld" action="action_tms_overview" sequence="5"/>
+    <menuitem id="menu_tms_handheld_purchase" name="Purchase" parent="menu_tms_handheld" sequence="10"/>
+    <menuitem id="menu_tms_purchase_order" name="Purchase Order" parent="menu_tms_handheld_purchase" action="action_tms_purchase_orderss" sequence="10"/>
+    <menuitem id="menu_tms_purchase_order_return" name="Purchase Return Order" parent="menu_tms_handheld_purchase" action="action_tms_purchase_orderss_return" sequence="20"/>
 
-    <menuitem id="menu_tms_handheld_master" name="Master Data" parent="menu_tms_handheld" sequence="10"/>
-    <!-- <menuitem id="menu_tms_unit_of_measures" name="Unit of Measures" parent="menu_tms_handheld_master" action="action_tms_unit_of_measures" sequence="10"/> -->
-    <menuitem id="menu_tms_items" name="Items" parent="menu_tms_handheld_master" action="action_tms_items" sequence="20"/>
-    <!-- <menuitem id="menu_tms_item_uom" name="Items UoM" parent="menu_tms_handheld_master" action="action_tms_item_uom" sequence="30"/> -->
-    <!-- <menuitem id="menu_tms_item_identifiers" name="Items Identifiers" parent="menu_tms_handheld_master" action="action_tms_item_identifiers" sequence="40"/> -->
-    <!-- <menuitem id="menu_tms_item_variant" name="Items Variant" parent="menu_tms_handheld_master" action="action_tms_item_variant" sequence="50"/> -->
-    <menuitem id="menu_tms_reservation_entry" name="Reservation Entry" parent="menu_tms_handheld_master" action="action_tms_reservation_entry" sequence="60"/>
+    <menuitem id="menu_tms_handheld_sales" name="Sales" parent="menu_tms_handheld" sequence="20"/>
+    <menuitem id="menu_tms_sales" name="Sales Order" parent="menu_tms_handheld_sales" action="action_tms_sales_order" sequence="10"/>
+    <menuitem id="menu_tms_sales_return" name="Sales Return Order" parent="menu_tms_handheld_sales" action="action_tms_sales_return" sequence="20"/>
 
-    <menuitem id="menu_tms_handheld_receive" name="Receive" parent="menu_tms_handheld" sequence="20"/>
-    <menuitem id="menu_tms_purchase_order" name="Purchase Order" parent="menu_tms_handheld_receive" action="action_tms_purchase_orderss" sequence="10"/>
-    <menuitem id="menu_tms_transfer" name="Transfer Order" parent="menu_tms_handheld_receive" action="action_tms_transfer" sequence="20"/>
+    <menuitem id="menu_tms_handheld_transfer" name="Transfer" parent="menu_tms_handheld" action="action_tms_transfer" sequence="30"/>
 
-    <menuitem id="menu_tms_handheld_shipment" name="Shipment" parent="menu_tms_handheld" sequence="30"/>
-    <menuitem id="menu_tms_sales" name="Sales Order" parent="menu_tms_handheld_shipment" action="action_tms_sales" sequence="10"/>
-    <menuitem id="menu_tms_transfer_shipment" name="Transfer Order" parent="menu_tms_handheld_shipment" action="action_tms_transfer" sequence="20"/>
-
-    <menuitem id="menu_tms_handheld_return" name="Return" parent="menu_tms_handheld" sequence="40"/>
-    <menuitem id="menu_tms_purchase_order_return" name="Purchase Order" parent="menu_tms_handheld_return" action="action_tms_purchase_orderss" sequence="10"/>
-    <menuitem id="menu_tms_sales_return" name="Sales Order" parent="menu_tms_handheld_return" action="action_tms_sales" sequence="20"/>
-
-    <menuitem id="menu_tms_handheld_stock_take" name="Stock Take" parent="menu_tms_handheld" sequence="50"/>
-    <menuitem id="menu_tms_handheld_register_barcode" name="Register Barcode" parent="menu_tms_handheld" sequence="60"/>
-
+    <menuitem id="menu_tms_handheld_stock" name="Stock" parent="menu_tms_handheld" sequence="40"/>
+    <menuitem id="menu_tms_items" name="Items" parent="menu_tms_handheld_stock" action="action_tms_items" sequence="10"/>
+    <menuitem id="menu_tms_check_stock" name="Check Stock" parent="menu_tms_handheld_stock" action="action_check_stock_wizard" sequence="20"/>
+    <menuitem id="menu_tms_stock_count" name="Stock Count" parent="menu_tms_handheld_stock" action="action_tms_item_journal" sequence="30"/>
+    <menuitem id="menu_tms_stock_adj" name="Stock Adj." parent="menu_tms_handheld_stock" action="action_tms_transaction_journal" sequence="40"/>
+    <!-- Menuitem -->
 </odoo>

@@ -7,7 +7,7 @@
         <field name="arch" type="xml">
             <form string="">
                 <header>
-                    <button name="submit_receipt_detail" type="object" string="Submit" class="oe_highlight"/>
+                    <!-- <button name="submit_receipt_detail" type="object" string="Submit" class="oe_highlight"/> -->
                 </header>
                 <sheet>
                     <group>

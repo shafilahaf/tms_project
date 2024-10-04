@@ -38,41 +38,29 @@ class TmsPurchaseOrderHeader(models.Model):
     return_shipment_no_series = fields.Char(string="Return Shipment No. Series", size=10)
     store_no = fields.Char(string="Store No.", size=10)
     
-
+   
     # update
-    complete_received = fields.Boolean('Complete Received')
+    complete_received = fields.Boolean('Completely Received')
     po_reopen = fields.Boolean('Reopen')
     # update
 
     purchase_order_line_ids = fields.One2many('tms.purchase.order.line', 'header_id', string='Purchase Order Lines')
-    
+   
+
     def create_po_receipt(self):
-        receipt_headerr = self.env['tms.purchase.receipt.header'].create({
-            'source_doc_no': self.no,
-        })
-
-        return {
-            'name': 'Receipt',
-            'view_mode': 'form',
-            'res_model': 'tms.purchase.receipt.header',
-            'type': 'ir.actions.act_window',
-            'target': 'current',
-            'res_id': receipt_headerr.id,
-            'views': [(self.env.ref('tr_tms_handheld.purchase_receipt_2_view_form').id, 'form')],
-            'context': {
-                'create': True, 'edit': True, 'delete': True
-            }
-        }
-
-    def receipt_po(self):
-        action = self.env.ref('tr_tms_handheld.action_receipt_po').read()[0]
-        action['domain'] = [('source_doc_no', '=', self.no)]
+        trans_header = self.env['tms.handheld.transaction']
+        action = trans_header.create_transaction(self.no,'Purchase',self.document_type)
         return action
-
+    
+    def receipt_po(self):
+        trans_header = self.env['tms.handheld.transaction']
+        action =  trans_header.view_transaction(self.no,'Purchase',self.document_type)
+        return action
 
 class TmsPurchaseOrderLine(models.Model):
     _name = 'tms.purchase.order.line'
     _description = 'TMS Purchase Order Line'
+    _rec_name = 'combination'
 
     header_id = fields.Many2one('tms.purchase.order.header', string='Header', ondelete='cascade')
     document_type = fields.Selection([
@@ -119,3 +107,24 @@ class TmsPurchaseOrderLine(models.Model):
     return_reason_code = fields.Char('Return Reason Code', size=10)
     notes = fields.Text('Notes', size=100)
 
+    item_no_no = fields.Char(string='Item Number', store=True)
+
+    combination = fields.Char(string='Combination', compute='_compute_fields_combination')
+ 
+    def name_get(self):
+        result = []
+        for rec in self:
+            display_name = f"{rec.line_no} - {rec.unit_of_measure_code.code}"
+            result.append((rec.id, display_name))
+        return result
+    
+    @api.depends('line_no', 'unit_of_measure_code')
+    def _compute_fields_combination(self):
+        for rec in self:
+            rec.combination = str(rec.line_no) + ' - ' + rec.unit_of_measure_code.code
+    
+    # @api.onchange('no')
+    # def _onchange_no(self):
+    #     if self.no :
+    #         self.item_no_no = self.no.no
+  

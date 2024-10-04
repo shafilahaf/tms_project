@@ -1,10 +1,32 @@
 from odoo import http
 from odoo.http import request
 import logging
+from odoo.addons.project_api.models.common import invalid_response, valid_response
+import functools
+
+def validate_token(func):
+    @functools.wraps(func)
+    def wrap(self, *args, **kwargs):
+        access_token = request.httprequest.headers.get("access_token")
+        if not access_token:
+            return invalid_response("access_token_not_found", "missing access token in request header", 401)
+        access_token_data = request.env["api.access_token"].sudo().search([("token", "=", access_token)],
+                                                                          order="id DESC", limit=1)
+
+        if access_token_data.find_or_create_token(user_id=access_token_data.user_id.id) != access_token:
+            return invalid_response("access_token", "token seems to have expired or invalid", 401)
+
+        request.session.uid = access_token_data.user_id.id
+        request.uid = access_token_data.user_id.id
+        return func(self, *args, **kwargs)
+
+    return wrap
+
 
 _logger = logging.getLogger(__name__)
 
 class TmsPurchaseHeader(http.Controller):
+    @validate_token
     @http.route('/api/tms_purchase_order', auth='public', methods=['POST'], csrf=False, type='json')
     def create_purchase_order(self, **kw):
         try:
@@ -42,7 +64,7 @@ class TmsPurchaseHeader(http.Controller):
             if purchase_order:
                 
                 tms_purchase_line.search([('header_id', '=', purchase_order.id)]).unlink()
-                
+
                 purchase_order.write({
                     'document_type': document_type,
                     'buy_from_vendor_no': buy_from_vendor_no,
@@ -112,12 +134,27 @@ class TmsPurchaseHeader(http.Controller):
             }
 
 class TmsPurchaseLine(http.Controller):
+    @validate_token
     @http.route('/api/tms_purchase_order_line', auth='public', methods=['POST'], csrf=False, type='json')
     def create_purchase_order_line(self, **kw):
         try:
             data = request.jsonrequest
             header_id = data.get('header_id')
             purchase_order_lines = data.get('Purchase_Order_Lines', [])
+
+            if not header_id:
+                return {
+                    'error': 'Purchase Order ID is required',
+                    'response': 400
+                }
+
+            purch_order = request.env['tms.purchase.order.header'].sudo().browse(header_id)
+
+            if not purch_order:
+                return {
+                    'error': 'Purchase Order not found',
+                    'response': 404
+                }
 
             tms_purchase_line = request.env['tms.purchase.order.line'].sudo()
             tms_item_model = request.env['tms.item'].sudo()
@@ -166,18 +203,15 @@ class TmsPurchaseLine(http.Controller):
                     'return_qty_shipped_base': line_data.get('Return Qty. Shipped (Base)'),
                     'return_reason_code': line_data.get('Return Reason Code'),
                     'notes': line_data.get('Notes'),
+                    'item_no_no': item_no,
                 }
 
-                existing_line = tms_purchase_line.search([('header_id', '=', header_id), ('line_no', '=', line_values['line_no'])])
-                if existing_line:
-                    existing_line.write(line_values)
-                else:
-                    tms_purchase_line.create(line_values)
+                tms_purchase_line.create(line_values)
 
             return {
                 'message': 'Purchase Order Lines created/updated successfully',
                 'response': 200
-            }
+             }
         except Exception as e:
             _logger.error("Error creating/updating Purchase Order Lines: %s", e)
             return {

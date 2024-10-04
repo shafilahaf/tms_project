@@ -4,56 +4,78 @@
         <field name="model">tms.item</field>
         <field name="arch" type="xml">
             <form string="TMS Item">
+                <header>
+                    <button name="open_item_identifiers" string="Item Identifiers" type="object" class="oe_highlight" />
+                </header>
                 <sheet>
                     <group>
-                        <group>
-                            <field name="no"/>
-                            <field name="description"/>
-                            <field name="search_description"/>
-                            <field name="description_2"/>
-                            <field name="base_unit_of_measure_id"/>
-                            <field name="inventory_posting_group"/>
-                        </group>
-                        <group>
-                            <field name="vendor_no"/>
-                            <field name="vendor_item_no"/>
-                            <field name="manufacturer_code"/>
-                            <field name="item_category_code"/>
-                            <field name="product_group_code"/>
-                            <field name="item_tracking_code"/>
-                            <field name="division_code"/>
-                            <field name="barcode" />
-                        </group>
+                        <field name="no"/>
+                        <field name="description"/>
+                        <field name="base_unit_of_measure_id"/>
                     </group>
-                    <!-- Additional fields for tracking and expiration -->
-                    <group string="Tracking and Expiration">
-                        <group>
-                            <field name="man_expir_date_entry_reqd"/>
-                            <field name="strict_expiration_posting"/>
-                            <field name="sn_specific_tracking"/>
-                            <field name="sn_purchase_inbound_tracking"/>
-                            <field name="sn_purchase_outbound_tracking"/>
-                            <field name="sn_sales_inbound_tracking"/>
-                            <field name="sn_sales_outbound_tracking"/>
-                            <field name="sn_pos_adjmt_inb_tracking"/>
-                            <field name="sn_pos_adjmt_outb_tracking"/>
-                            <field name="sn_neg_adjmt_inb_tracking"/>
-                            <field name="sn_neg_adjmt_outb_tracking"/>
-                            <field name="sn_transfer_tracking"/>
-                        </group>
-                        <group>
-                            <field name="lot_specific_tracking"/>
-                            <field name="lot_purchase_inbound_tracking"/>
-                            <field name="lot_purchase_outbound_tracking"/>
-                            <field name="lot_sales_inbound_tracking"/>
-                            <field name="lot_sales_outbound_tracking"/>
-                            <field name="lot_pos_adjmt_inb_tracking"/>
-                            <field name="lot_pos_adjmt_outb_tracking"/>
-                            <field name="lot_neg_adjmt_inb_tracking"/>
-                            <field name="lot_neg_adjmt_outb_tracking"/>
-                            <field name="lot_transfer_tracking"/>
-                        </group>
-                    </group>
+                    <notebook>
+                        <page name="general_info" string="General Information">
+                            <group name="generalinfo">
+                                <field name="vendor_no" />
+                                <field name="vendor_item_no" />
+                                <field name="manufacturer_code" />
+                                <field name="item_category_code" />
+                                <field name="product_group_code" />
+                                <field name="item_tracking_code" />
+                                <field name="division_code" />
+                                <field name="barcode" />
+                            </group>
+                        </page>
+                        <page name="general_accounting" string="Accounting">
+                            <group name="accounting">
+                                <field name="inventory_posting_group" />
+                            </group>
+                        </page>
+                        <page name="general_tracking_setup" string="Tracking Setup">
+                            <group name="trackingsetup">
+                                <group>
+                                    <field name="man_expir_date_entry_reqd"/>
+                                    <field name="strict_expiration_posting"/>
+                                    <field name="sn_specific_tracking"/>
+                                    <field name="sn_purchase_inbound_tracking"/>
+                                    <field name="sn_purchase_outbound_tracking"/>
+                                    <field name="sn_sales_inbound_tracking"/>
+                                    <field name="sn_sales_outbound_tracking"/>
+                                    <field name="sn_pos_adjmt_inb_tracking"/>
+                                    <field name="sn_pos_adjmt_outb_tracking"/>
+                                    <field name="sn_neg_adjmt_inb_tracking"/>
+                                    <field name="sn_neg_adjmt_outb_tracking"/>
+                                    <field name="sn_transfer_tracking"/>
+                                </group>
+                                <group>
+                                    <field name="lot_specific_tracking"/>
+                                    <field name="lot_purchase_inbound_tracking"/>
+                                    <field name="lot_purchase_outbound_tracking"/>
+                                    <field name="lot_sales_inbound_tracking"/>
+                                    <field name="lot_sales_outbound_tracking"/>
+                                    <field name="lot_pos_adjmt_inb_tracking"/>
+                                    <field name="lot_pos_adjmt_outb_tracking"/>
+                                    <field name="lot_neg_adjmt_inb_tracking"/>
+                                    <field name="lot_neg_adjmt_outb_tracking"/>
+                                    <field name="lot_transfer_tracking"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="general_item_uom" string="Item UoM">
+                            <field name="item_uom_ids">
+                                <tree>
+                                    <field name="code" />
+                                    <field name="qty_per_unit_of_measure" />
+                                </tree>
+                                <form>
+                                    <group>
+                                        <field name="code" />
+                                        <field name="qty_per_unit_of_measure" />
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>
@@ -64,7 +86,8 @@
         <field name="model">tms.item</field>
         <field name="arch" type="xml">
             <tree string="TMS Items">
-                <field name="no"/>
+                <!-- Adjust as per requirement change the value of style-->
+                <field name="no" class="full-width-field"/> <!-- t-attf-class="full-width-field"-->
                 <field name="description"/>
                 <field name="vendor_no"/>
                 <field name="manufacturer_code"/>

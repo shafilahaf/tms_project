@@ -4,7 +4,7 @@ from odoo.exceptions import UserError, ValidationError
 class TmsItem(models.Model):
     _name = 'tms.item'
     _description = 'TMS Item'
-    _rec_name = 'combination'
+    _rec_name = 'no'
 
     no = fields.Char(string='No.', required=True)
     description = fields.Text(string='Description', required=True)
@@ -43,10 +43,41 @@ class TmsItem(models.Model):
     lot_transfer_tracking = fields.Boolean('Lot Transfer Tracking', default=False)
     barcode = fields.Char(string="Barcode")
     
+    item_uom_ids = fields.One2many('tms.item.uom', string='Item UoM', compute='_compute_item_uom')
+    
     has_been_sent_to_nav = fields.Boolean(string='Has been sent to NAV', default=False)
     etag = fields.Char(string='ETag')
     
     combination = fields.Char(string='Combination', compute='_compute_fields_combination')
+
+    @api.depends('no')
+    def _compute_item_uom(self):
+        for record in self:
+            if record.no:
+                record.item_uom_ids = self.env['tms.item.uom'].search([
+                    ('item_no', '=', record.no)
+                ])
+            else:
+                record.item_uom_ids = False
+
+    def open_item_identifiers(self):
+        default_uom_code = self.env['tms.unit.of.measures'].search([
+            ('code','=', self.base_unit_of_measure_id)
+        ], limit=1)
+        return {
+            'name': 'Item Identifiers',
+            'type': 'ir.actions.act_window',
+            'res_model': 'tms.item.identifiers',
+            'view_mode': 'tree,form',
+            'target': 'current',
+            'context': {
+                'default_item_no': self.id,
+                # 'default_unit_of_measure_code': default_uom_code.id,
+                'create': True, 'edit': True, 'delete': True,
+                'from_odoo': True,
+            },
+            'domain': [('item_no', '=', self.id)]
+        }
     
     @api.depends('no', 'description')
     def _compute_fields_combination(self):
@@ -64,9 +95,9 @@ class TmsItem(models.Model):
     #     recordset = self.search(domain + args, limit=limit)
     #     return recordset.name_get()
     
-    def name_get(self):
-        result = []
-        for rec in self:
-            display_name = f"{rec.no} - {rec.description}"
-            result.append((rec.id, display_name))
-        return result
+    # def name_get(self):
+    #     result = []
+    #     for rec in self:
+    #         display_name = f"{rec.no} - {rec.description}"
+    #         result.append((rec.id, display_name))
+    #     return result
