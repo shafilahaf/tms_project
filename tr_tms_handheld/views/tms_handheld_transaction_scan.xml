@@ -76,6 +76,32 @@
 
                         <!-- <field name="lot_number" attrs="{'invisible': ['|',('contains_lot','=',False), ('contains_lot_sn','=',False)]}"/> -->
                         <field name="lot_number" attrs="{'invisible': [('contains_lot_sn', '=', False), '|', ('contains_lot', '=', False), ('contains_lot_sn', '=', True)]}"/>
+                        <script type="text/javascript" src="/tr_tms_handheld/static/src/js/lot_number.js"></script>
+                        <section class="oe_edit_only" attrs="{'invisible': [('contains_lot_sn', '=', False), '|', ('contains_lot', '=', False), ('contains_lot_sn', '=', True)]}">
+                            <div>
+                                <a role="button" style="color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-primary" id="js_id_lot_number_start_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Start
+                                </a>
+                                <a role="button" style="display: none; color: #fff; border-radius: 0px; margin-bottom: 5px; margin-right: 5px;" class="btn btn-danger" id="js_id_lot_number_reset_btn">
+                                    <i class="fa fa-barcode"></i>
+                                    Stop
+                                </a>
+                            </div>
+                            <div id="js_id_lot_number_vid_div" style="display: none;">
+                                <group style="margin-bottom: 10px;">
+                                    <div class="form-group row" style="margin-bottom: 0px;">
+                                        <strong style="align-self: center;" class="col-3">Camera</strong>
+                                        <select class="col-8 form-control" id="js_id_lot_number_cam_select"> </select>
+                                    </div>
+                                </group>
+                                <video id="video-lot" class="cls_serial_video_tag" width="600" height="400" style="border: 1px solid gray;"></video>
+                                <span style="display: block;">Result:</span>
+                                <code id="js_id_lot_number_result"></code>
+                            </div>
+                        </section>
+
+
                         <field name="exp_date" invisible="1"/>
                         <field name="item_uom" attrs="{'invisible': ['|',('contains_lot','=',True), ('contains_sn','=',True)]}" force_save="1" options="{'no_create': True, 'no_create_edit':True,'no_open': True}"/>
                         <field name="item_no_no" invisible="1"/>
