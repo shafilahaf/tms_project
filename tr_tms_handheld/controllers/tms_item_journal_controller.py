@@ -75,7 +75,7 @@ class TmsItemJournal(http.Controller):
             return {
                 'message': 'Item Journal created/updated successfully',
                 'response': 200,
-                'item_journal_id': journal.id
+                'header_id': journal.id
             }
         except Exception as e:
             _logger.error("Error creating/updating Item Journal Header: %s", e)

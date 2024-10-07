@@ -22,7 +22,11 @@
         <field name="model">tms.item.journal</field>
         <field name="arch" type="xml">
             <form string="">
+                <header>
+                    <button name="create_transaction_header" string="Create Transaction" type="object" class="oe_highlight"/>
+                </header>
                 <sheet>
+                    <button name="view_transaction_header" type="object" string="View Transaction" class="btn-primary"/>
                     <group>
                         <field name="no" />
                         <field name="document_type" />
@@ -32,7 +36,7 @@
                         <field name="journal_batch_name" />
                         <field name="status" />
                     </group>
-                    <notebook>
+                    <notebook invisible="1">
                         <page name="line" string="Lines">
                             <field name="item_journal_line_ids">
                                 <tree editable="bottom">

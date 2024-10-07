@@ -226,5 +226,12 @@
         <field name="code">tms.handheld.itemjournal</field>
         <field name="prefix">ITEMJOURNAL-</field>
         <field name="padding">5</field>
-</record>
+    </record>
+
+    <record id="seq_document_no_itemjournalphysc" model="ir.sequence">
+        <field name="name">Item Journal Document No Physc</field>
+        <field name="code">tms.handheld.itemjournalphys</field>
+        <field name="prefix">PHYSCIJ-</field>
+        <field name="padding">5</field>
+    </record>
 </odoo>

@@ -123,6 +123,10 @@ class TMSHandheldReceipt(models.Model):
             elif sourcedoctype == "Receipt" :
                 doctype = "6"
                 pagename = "Receipt"
+        elif docsource == "Item Journal":
+            if sourcedoctype == "Phys. Inv. Journal":
+                doctype = "7"
+                pagename = "Phys. Item Journal"
             
         trans_header = self.env['tms.handheld.transaction'].create({
             'source_doc_no': sourcno,
@@ -159,6 +163,9 @@ class TMSHandheldReceipt(models.Model):
                 doctype = "5"
             elif sourcedoctype == "Receipt" :
                 doctype = "6"
+        elif docsource == "Item Journal":
+            if sourcedoctype == "Phys. Inv. Journal":
+                doctype = "7"
                
         action = self.env.ref('tr_tms_handheld.action_receipt_po').read()[0]
         action['domain'] = [('source_doc_no', '=', sourcno),('document_type','=',doctype)]
@@ -179,6 +186,8 @@ class TMSHandheldReceipt(models.Model):
             vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.transfer_shipment')
         elif vals["document_type"] == '6' :
             vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.transfer_receipt')
+        elif vals["document_type"] == '7' :
+            vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.itemjournalphys')
         #elif vals["document_type"] == '7' :
         #    vals['document_no'] = self.env['ir.sequence'].next_by_code('tms.handheld.purchase_shipment')
         # elif vals["document_type"] == '8' :
@@ -210,7 +219,7 @@ class TMSHandheldReceipt(models.Model):
             sourcetype = '37'
         elif doctype in ["5","6"] :
             sourcetype = '5741' 
-        elif doctype == '8' :
+        elif doctype == '8':
             sourcetype = '83' 
 
         return sourcetype
@@ -223,6 +232,9 @@ class TMSHandheldReceipt(models.Model):
             self.fnCreateItemJournalHeaderNav()
             self.fnCreateItemJournalLineNav()
             self.fnSendActionPostIJLNav()
+        elif self.document_type == "7":
+            self.fnCreateItemJournalHeaderNav()
+            self.fnCreateItemJournalLineNav()
         else:
             self.post_transaction()
 
@@ -299,16 +311,31 @@ class TMSHandheldReceipt(models.Model):
         #create new
         dicFilter = False
         url_header,headers,auth = self.getUrlNav("ItemJournalHH",eTag,dicFilter)
+
+        souce_doc_no = self.env['tms.item.journal'].search([
+                ('no','=', self.source_doc_no)
+            ])
         
-        data_header = {
-            "No": self.document_no,
-            "Posting_Date": self.posting_date.isoformat(),
-            "Location_Code": self.location_id.code,
-            "Document_Type" : self.fnCheckDocType(),
-            "Processed_Header_Id" : self.id,
-            "Status" : 'Released',
-            "Handheld_User" : self.env.user.login
-        }
+        if self.document_type == "8":
+            data_header = {
+                "No": self.document_no,
+                "Posting_Date": self.posting_date.isoformat(),
+                "Location_Code": self.location_id.code,
+                "Document_Type" : self.fnCheckDocType(),
+                "Processed_Header_Id" : self.id,
+                "Status" : 'Released',
+                "Handheld_User" : self.env.user.login
+            }
+        elif self.document_type == "7":
+            data_header = {
+                "No": self.document_no,
+                "Posting_Date": self.posting_date.isoformat(),
+                "Location_Code": self.location_id.code if self.location_id.code else '',
+                "Document_Type" : self.fnCheckDocType(),
+                "Processed_Header_Id" : souce_doc_no.id,
+                "Status" : 'Released',
+                "Handheld_User" : self.env.user.login
+            }
 
         response = requests.post(url_header, headers=headers, auth=auth, json=data_header)
 
@@ -322,20 +349,31 @@ class TMSHandheldReceipt(models.Model):
         dicFilter = False
         url_line,headers,auth = self.getUrlNav("ItemJournalHHLine",eTag,dicFilter)
 
-
         for line in self.transaction_line_ids:
-            data_line = {
-                "Document_No": self.document_no,
-                "Line_No": str(line.line_no),
-                "Posting_Date": self.posting_date.isoformat(),
-                "Entry_Type": line.entry_type,
-                "Item_No": line.item_no.no,
-                "Description": line.item_no.description,
-                "Unit_of_Measure_Code": line.item_uom.code,
-                "Quantity": str(line.qty_to_receive),
-                "Processed_Header_Id" : self.id
-            }
-            
+
+            if self.document_type == "8":
+                data_line = {
+                    "Document_No": self.document_no,
+                    "Line_No": str(line.line_no),
+                    "Posting_Date": self.posting_date.isoformat(),
+                    "Entry_Type": line.entry_type,
+                    "Item_No": line.item_no.no,
+                    "Description": line.item_no.description,
+                    "Unit_of_Measure_Code": line.item_uom.code,
+                    "Quantity": str(line.qty_to_receive),
+                    "Processed_Header_Id" : self.id
+                }
+            elif self.document_type == "7":
+                data_line = {
+                    "Document_No": self.document_no,
+                    "Line_No": str(line.line_no),
+                    "Posting_Date": self.posting_date.isoformat(),
+                    "Item_No": line.item_no.no,
+                    "Description": line.item_no.description,
+                    "Unit_of_Measure_Code": line.item_uom.code,
+                    "Quantity": str(line.qty_to_receive),
+                    "Processed_Header_Id" : self.id
+                }
             response = requests.post(url_line, headers=headers, auth=auth, json=data_line)
             
             if response.status_code == 400 :
@@ -530,6 +568,8 @@ class TMSHandheldReceipt(models.Model):
             doctype = "Transfer Receipt"
         elif self.document_type  == "8":
             doctype = "Item Journal"
+        elif self.document_type == "7":
+            doctype = "Temporary"
 
         return doctype
     
@@ -540,7 +580,6 @@ class TMSHandheldReceipt(models.Model):
                 doctype = "Order"
             elif self.document_type in ["2","4"]:
                 doctype = "Return Order"
-         
         else : 
             if vals["document_type"] in ["1","3"]:
                 doctype = "Order"

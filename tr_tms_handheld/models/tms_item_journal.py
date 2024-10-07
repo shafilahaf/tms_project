@@ -19,6 +19,17 @@ class TMSItemJournalHeader(models.Model):
     status = fields.Char('Status')
     item_journal_line_ids = fields.One2many('tms.item.journal.line', 'header_id', string='Item Journal Line')
 
+    def create_transaction_header(self):
+        trans_header = self.env['tms.handheld.transaction']
+        action = trans_header.create_transaction(self.no,'Item Journal',self.document_type)
+        return action
+    
+    def view_transaction_header(self):
+        trans_header = self.env['tms.handheld.transaction']
+        action =  trans_header.view_transaction(self.no,'Item Journal',self.document_type)
+        return action
+
+
 class TMSItemJournalLine(models.Model):
     _name = 'tms.item.journal.line'
     _description = 'TMS Item Journal Line'

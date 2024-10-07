@@ -35,7 +35,7 @@ class TMSHandheldTransactionScan(models.Model):
     line_so = fields.Many2one('tms.sales.order.line', string="Line No.", domain = "[('document_no', '=', source_doc_no),('item_no_no', '=', item_no_no)]")
     line_to = fields.Many2one('tms.transfer.line', string="Line No.", domain = "[('document_no', '=', source_doc_no),('item_no_no', '=', item_no_no)]")
     source_doc_no = fields.Char('Source Doc. No.', readonly=True)
-    handheld_document_type = fields.Selection([('1', 'Purchase Receipt Order'), ('2', 'Purchase Return Shipment'),('3', 'Sales Shipment Order'), ('4', 'Sales Return Receipt'), ('5', 'Transfer Shipment'),('6', 'Transfer Receipt'),('8', 'Item Journal')], string='Document Type')
+    handheld_document_type = fields.Selection([('1', 'Purchase Receipt Order'), ('2', 'Purchase Return Shipment'),('3', 'Sales Shipment Order'), ('4', 'Sales Return Receipt'), ('5', 'Transfer Shipment'),('6', 'Transfer Receipt'), ('7', 'Phys. Inv. Journal'), ('8', 'Item Journal')], string='Document Type')
     entry_type = fields.Selection([('Positive Adjusment', 'Positive Adjusment'),('Negative Adjusment', 'Negative Adjusment')], string='Entry Type')
 
     @api.constrains('quantity')
@@ -163,10 +163,10 @@ class TMSHandheldTransactionScan(models.Model):
         #for record in self:
         if self.handheld_transaction_id:
             source_doc,source_line,default_item_uom = self.fnGetLinkToSourceLine(self.handheld_transaction_id.document_type)
-            if source_doc and source_doc != "8":
+            if source_doc and source_doc not in ["8", "7"]:
                 source_line_map = source_line.mapped('no.id')
                 self.available_item_ids = [(6, 0, source_line_map)]
-            elif source_doc and source_doc == "8" :
+            elif source_doc and (source_doc in ["8", "7"]) :
                 source_line_map = source_line.mapped('id')
                 self.available_item_ids = [(6, 0, source_line_map)]
             else :
@@ -184,7 +184,7 @@ class TMSHandheldTransactionScan(models.Model):
             self._check_first_line_detail()
             self.handheld_document_type = self.handheld_transaction_id.document_type
             source_doc,source_line,default_item_uom = self.fnGetLinkToSourceLine(self.handheld_transaction_id.document_type)
-            if source_doc and source_doc != "8":
+            if source_doc and source_doc not in ["8", "7"]:
                 source_line_map = source_line.filtered(
                         lambda line: line.no.id == self.item_no.id
                 )
@@ -199,7 +199,7 @@ class TMSHandheldTransactionScan(models.Model):
                         self.line_so = line.id
                     elif  self.handheld_transaction_id.document_type in ["5","6"] :
                         self.line_to = line.id
-            elif source_doc and source_doc == "8":
+            elif source_doc and source_doc in ["8", "7"]:
                 self.item_no_no = self.item_no.no
 
             self.source_doc_no = self.handheld_transaction_id.source_doc_no
@@ -278,7 +278,7 @@ class TMSHandheldTransactionScan(models.Model):
     def fnInsertToTransactionWithoutSN(self) :
         line = self.fngetLineNo(self.handheld_transaction_id.document_type) 
         ln = 10000
-        if self.handheld_transaction_id.document_type != "8":
+        if self.handheld_transaction_id.document_type not in ["8", "7"]:
             receipt_line = self.env['tms.handheld.transaction.line'].search([
                 ('handheld_transaction_id', '=', self.handheld_transaction_id.id),
                 ('item_no', '=', self.item_no.id),
@@ -291,7 +291,7 @@ class TMSHandheldTransactionScan(models.Model):
             else :
                 ln = line.line_no
             
-        elif self.handheld_transaction_id.document_type == "8" : 
+        elif self.handheld_transaction_id.document_type in ["8", "7"] : 
             receipt_line = self.env['tms.handheld.transaction.line'].search([('handheld_transaction_id', '=', self.handheld_transaction_id.id),
             ('item_no', '=', self.item_no.id),('item_uom', '=', self.item_uom.id),('entry_type', '=', self.entry_type)
             ],order="line_no desc",limit = 1)
@@ -343,7 +343,7 @@ class TMSHandheldTransactionScan(models.Model):
             if iuom == False:
                 raise UserError(f'Unit of Measure Code required for this operation cannot found in Item Unit of Measure. Item No. = {item.no}, Code={item.base_unit_of_measure_id}.')
 
-            if self.handheld_transaction_id.document_type != "8":
+            if self.handheld_transaction_id.document_type not in ["8", "7"]:
                 receipt_line = self.env['tms.handheld.transaction.line'].search([
                     ('handheld_transaction_id', '=', self.handheld_transaction_id.id),
                     ('item_no', '=', entry.item_no),
@@ -355,7 +355,7 @@ class TMSHandheldTransactionScan(models.Model):
                 else :
                     ln = entry.line_no
                
-            elif self.handheld_transaction_id.document_type == "8" : 
+            elif self.handheld_transaction_id.document_type in ["8", "7"] : 
                 receipt_line = self.env['tms.handheld.transaction.line'].search([('handheld_transaction_id', '=', self.handheld_transaction_id.id)
                 ,('item_no', '=', entry.item_no),('item_uom', '=', iuom),('entry_type', '=', self.entry_type)
                 ],order="line_no desc",limit = 1)
@@ -430,8 +430,8 @@ class TMSHandheldTransactionScan(models.Model):
             sourcetype = '37'
         elif doctype in ["5","6"] :
             sourcetype = '5741' 
-        elif doctype == '8' :
-            sourcetype = '83' 
+        elif doctype in ['8', '7'] :
+            sourcetype = '83'
 
         return sourcetype
 
@@ -503,8 +503,12 @@ class TMSHandheldTransactionScan(models.Model):
                 ('item_no', '=', self.line_to.no.no)
             ])
             
-        elif doctype in ["8"] :
-            source_doc = "8"
+        elif doctype in ["8", "7"] :
+            # source_doc = "8"
+            if doctype == "8":
+                source_doc = "8"
+            elif doctype == "7":
+                 source_doc = "7"
             source_line = self.env["tms.item"].search([])
             default_item_uom = self.item_uom.search([('item_no', '=', self.item_no.no)])          
         return source_doc,source_line,default_item_uom
@@ -565,7 +569,6 @@ class TMSHandheldTransactionScan(models.Model):
             }
         }
     
-        
 
     @api.onchange('serial_number')
     def _onchange_serial_number(self):
