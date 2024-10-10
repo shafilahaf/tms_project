@@ -82,12 +82,7 @@ class TmsItem(http.Controller):
             }
 
         tms_item = request.env['tms.item'].sudo()
-        # existing_item = tms_item.search([('id', '=', hh_id)])
-        search_domain = [('no', '=', no)]
-        if hh_id:
-            search_domain.append(('id', '=', hh_id))
-            
-        existing_item = tms_item.search(search_domain)
+        existing_item = tms_item.search([('no', '=', no), ('description','=',description)])
 
         try:
             if not item_tracking_code:
